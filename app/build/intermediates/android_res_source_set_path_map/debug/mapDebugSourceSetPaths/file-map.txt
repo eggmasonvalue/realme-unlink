@@ -1,0 +1,8 @@
+app.realme.unlink.app-pngs-0 /home/kirubhas/src/realme-unlink/app/build/generated/res/pngs/debug
+app.realme.unlink.app-updated_navigation_xml-1 /home/kirubhas/src/realme-unlink/app/build/generated/updated_navigation_xml/debug
+app.realme.unlink.app-packageDebugResources-2 /home/kirubhas/src/realme-unlink/app/build/intermediates/incremental/debug/packageDebugResources/merged.dir
+app.realme.unlink.app-packageDebugResources-3 /home/kirubhas/src/realme-unlink/app/build/intermediates/incremental/debug/packageDebugResources/stripped.dir
+app.realme.unlink.app-debug-4 /home/kirubhas/src/realme-unlink/app/build/intermediates/merged_res/debug/mergeDebugResources
+app.realme.unlink.app-debug-5 /home/kirubhas/src/realme-unlink/app/src/debug/res
+app.realme.unlink.app-main-6 /home/kirubhas/src/realme-unlink/app/src/main/res
+gradleHome-0 /home/kirubhas/.gradle

@@ -1,0 +1,19 @@
+Google Sans Flex (google_sans_flex.ttf)
+
+Source: https://fonts.google.com/specimen/Google+Sans+Flex
+Fetched from: https://fonts.gstatic.com/s/googlesansflex/... (Google Fonts CDN)
+License: SIL Open Font License, Version 1.1 (OFL-1.1)
+
+Google Sans Flex was published as an open-source, OFL-licensed family on
+Google Fonts in November 2025. As of this writing it has not yet been mirrored
+into the public github.com/google/fonts repository (see google/fonts#10006,
+#10077), so no upstream OFL.txt with the exact per-family copyright line is
+available to include verbatim here.
+
+The general terms of the SIL Open Font License 1.1 apply: the font may be
+used, studied, modified, and redistributed (including bundled with software)
+free of charge; it may not be sold by itself; and modified versions may not
+use the original font's Reserved Font Name.
+
+Action item: once Google Sans Flex lands in github.com/google/fonts, replace
+this notice with the official OFL.txt shipped alongside the font family.

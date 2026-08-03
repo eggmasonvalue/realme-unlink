@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="app.realme.unlink.HeadsetSessionTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-08-03T13:35:20.170Z" hostname="debian-mini-fat" time="0.225">
+  <properties/>
+  <testcase name="ignoresUnsolicitedFramesAndMatchesTheExpectedResponse" classname="app.realme.unlink.HeadsetSessionTest" time="0.055"/>
+  <testcase name="closeCancelsAnInFlightTransaction" classname="app.realme.unlink.HeadsetSessionTest" time="0.006"/>
+  <testcase name="failsCleanlyWhenThePeerDisconnects" classname="app.realme.unlink.HeadsetSessionTest" time="0.005"/>
+  <testcase name="cancelsAndClosesABlockedReadOnTimeout" classname="app.realme.unlink.HeadsetSessionTest" time="0.052"/>
+  <testcase name="matchesTransferIdsAcrossTheEightBitRollover" classname="app.realme.unlink.HeadsetSessionTest" time="0.097"/>
+  <testcase name="sendsAllOutboundFragmentsBeforeReadingTheResponse" classname="app.realme.unlink.HeadsetSessionTest" time="0.007"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

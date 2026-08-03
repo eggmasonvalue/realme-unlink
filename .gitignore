@@ -1,0 +1,18 @@
+# Gradle / local tooling
+.gradle/
+.kotlin/
+.pi/
+build/
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+local.properties
+
+# Generated APKs and reports
+*.apk
+*.aab
+captures/
+
+# Local reverse-engineering artifacts
+/tmp/

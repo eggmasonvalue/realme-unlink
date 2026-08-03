@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="app.realme.unlink.HeadsetSemanticsTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-08-03T13:35:20.157Z" hostname="debian-mini-fat" time="0.004">
+  <properties/>
+  <testcase name="mapsWearMultipointAndSwitchValues" classname="app.realme.unlink.HeadsetSemanticsTest" time="0.001"/>
+  <testcase name="mapsNeckbandButtonsNotEarbudTouches" classname="app.realme.unlink.HeadsetSemanticsTest" time="0.001"/>
+  <testcase name="mapsConfirmedNoiseValuesWithoutHidingUnknowns" classname="app.realme.unlink.HeadsetSemanticsTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
