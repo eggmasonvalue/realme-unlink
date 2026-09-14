@@ -312,6 +312,32 @@ object HeadsetProtocol {
         return payload
     }
 
+    val DEFAULT_CUSTOM_EQ_FREQUENCIES = listOf(50, 250, 1000, 4000, 8000, 16000)
+
+    /** Builds a custom 6-band EQ payload for bands 50Hz, 250Hz, 1000Hz, 4000Hz, 8000Hz, 16000Hz. */
+    fun encodeCustom6BandEqPayload(
+        action: Int = 2,
+        id: Int = 4,
+        name: String = "Custom",
+        minValue: Int = -6,
+        maxValue: Int = 6,
+        dbValues: List<Int>,
+    ): ByteArray {
+        require(dbValues.size == DEFAULT_CUSTOM_EQ_FREQUENCIES.size) {
+            "6 dB values are required for 6-band EQ"
+        }
+        val profile = HeadsetCapabilityDiscovery.EqProfile(
+            selected = true,
+            minValue = minValue,
+            maxValue = maxValue,
+            id = id,
+            name = name,
+            frequencies = DEFAULT_CUSTOM_EQ_FREQUENCIES,
+            dbValues = dbValues,
+        )
+        return encodeCustomEqWrite(action, profile)
+    }
+
     /** Builds a bass-engine write payload. Typed multi-band values include the trailing type byte. */
     fun encodeBassEngineWrite(value: HeadsetCapabilityDiscovery.BassEngineValue): ByteArray {
         require(value.minValue in -128..127) { "Bass min must fit in a signed byte" }

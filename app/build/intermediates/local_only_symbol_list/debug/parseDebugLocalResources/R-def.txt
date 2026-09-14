@@ -1,5 +1,0 @@
-R_DEF: Internal format may change without notice
-local
-drawable ic_unlink_tile
-font google_sans_flex
-style AppTheme

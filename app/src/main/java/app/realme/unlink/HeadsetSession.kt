@@ -33,6 +33,8 @@ class HeadsetSession private constructor(
     private val responseTimeoutMillis: Long,
     private val trace: (String) -> Unit,
 ) : AutoCloseable {
+    var onUnsolicitedFrame: ((HeadsetProtocol.Frame) -> Unit)? = null
+
     companion object {
         private const val DEFAULT_RESPONSE_TIMEOUT_MILLIS = 6_000L
         private const val MAX_IGNORED_FRAMES = 8
@@ -166,6 +168,7 @@ class HeadsetSession private constructor(
                     return frame
                 }
                 trace("ignored unsolicited/non-matching frame")
+                onUnsolicitedFrame?.invoke(frame)
             }
 
             close()

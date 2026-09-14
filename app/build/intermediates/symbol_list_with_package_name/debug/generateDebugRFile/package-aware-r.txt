@@ -1,4 +1,0 @@
-app.realme.unlink
-drawable ic_unlink_tile
-font google_sans_flex
-style AppTheme

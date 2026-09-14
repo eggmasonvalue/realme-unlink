@@ -54,4 +54,22 @@ data class HeadsetSnapshot(
                 else -> "Profile $id"
             }
         }
+
+    val gameModeEnabled: Boolean?
+        get() = switches.firstOrNull { it.id == 8 || 8 in it.aliases }?.enabled
+
+    val volumeEnhancerEnabled: Boolean?
+        get() = switches.firstOrNull { it.id == 9 }?.enabled
+
+    val dualDeviceEnabled: Boolean?
+        get() = switches.firstOrNull { it.id == 17 }?.enabled
+
+    val smartWindNoiseEnabled: Boolean?
+        get() = switches.firstOrNull { it.id == 26 }?.enabled
+
+    val dynamicBassEnabled: Boolean?
+        get() = switches.firstOrNull { it.id == 29 }?.enabled
+
+    val hdAudioEnabled: Boolean?
+        get() = switches.firstOrNull { it.id == 38 }?.enabled
 }

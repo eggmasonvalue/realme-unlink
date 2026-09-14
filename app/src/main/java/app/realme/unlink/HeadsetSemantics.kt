@@ -8,6 +8,8 @@ package app.realme.unlink
  * left/right touch buds.
  */
 object HeadsetSemantics {
+    val isNeckbandDevice: Boolean = true
+
     fun noiseActionLabel(action: Int): String = when (action) {
         1 -> "Noise control"
         2 -> "Noise-control cycle"
@@ -69,7 +71,7 @@ object HeadsetSemantics {
      * button 1 = multifunction and button 4 = volume +.
      */
     fun buttonControlLabel(deviceType: Int, button: Int): String = when (button) {
-        1 -> "Multifunction"
+        1 -> "Multifunction (MFB)"
         2 -> "Multifunction (alt)"
         3 -> "Noise key"
         4 -> "Volume +"
@@ -84,17 +86,18 @@ object HeadsetSemantics {
 
     fun switchFeatureLabel(featureId: Int): String? = when (featureId) {
         5 -> "Power saving"
-        6, 8 -> "Gaming mode"
+        6, 8 -> "45ms Ultra-Low Latency Game Mode"
         7 -> "Party mode"
-        9, 12 -> "Voice enhancement"
+        9 -> "Volume Enhancer"
         11 -> "HearID"
-        17 -> "Dual device"
+        12 -> "Voice enhancement"
+        17 -> "Dual Connection (Multipoint)"
         19 -> "AI microphone"
         24 -> "High-quality audio"
-        26 -> "Wind noise reduction"
-        27 -> "Spatial audio"
-        29 -> "Dynamic audio"
-        38 -> "Find device"
+        26 -> "Wind Noise Reduction"
+        27 -> "3D Spatial Audio"
+        29 -> "Dynamic Bass Boost"
+        38 -> "HD Audio / LDAC"
         54 -> "Clear Bass"
         else -> null
     }
@@ -120,27 +123,30 @@ object HeadsetSemantics {
     }
 
     fun buttonActionLabel(action: Int): String = when (action) {
-        1 -> "Single press"
-        2 -> "Double press"
-        3 -> "Triple press"
-        4, 5 -> "Press & hold"
+        1 -> "Single Press"
+        2 -> "Double Press"
+        3 -> "Triple Press"
+        4 -> "Long Press (1s)"
+        5 -> "Long Press (3s)"
         else -> "Action $action"
     }
 
     fun buttonFunctionLabel(function: Int): String = when (function) {
-        1 -> "Play / pause"
-        2 -> "Next track"
-        3 -> "Previous track"
-        4 -> "Voice assistant"
-        5 -> "Noise control"
-        6 -> "Switch device"
-        7 -> "Gaming mode"
-        8 -> "Volume up"
-        9 -> "Volume down"
-        26 -> "Face-to-face translation"
-        27 -> "AI home"
-        31 -> "AI assistant"
-        0 -> "None"
+        1 -> "Play / Pause"
+        2 -> "Next Track"
+        3 -> "Previous Track"
+        4 -> "Voice Assistant"
+        5 -> "Noise Mode"
+        6 -> "Switch Device"
+        7 -> "Game Mode"
+        8 -> "Volume Up"
+        9 -> "Volume Down"
+        10 -> "Ring / Find Phone"
+        11 -> "Camera Shutter"
+        26 -> "Face-to-Face Translation"
+        27 -> "AI Home"
+        31 -> "AI Assistant"
+        0 -> "Off"
         else -> "Function $function"
     }
 }

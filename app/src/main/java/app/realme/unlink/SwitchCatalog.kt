@@ -5,8 +5,8 @@ package app.realme.unlink
  * Rejected IDs must never appear as working toggles.
  */
 object SwitchCatalog {
-    /** IDs accepted by reversible live writes. */
-    val writableIds: Set<Int> = setOf(6, 8, 9, 17, 26, 29, 38)
+    /** IDs accepted by reversible live writes (including 27 for Spatial Audio). */
+    val writableIds: Set<Int> = setOf(6, 8, 9, 17, 26, 27, 29, 38)
 
     /**
      * Gaming mode is advertised under both 6 and 8. Prefer 8 (baseline was on) and
@@ -38,7 +38,7 @@ object SwitchCatalog {
             }
             result += LogicalSwitch(
                 id = writeId,
-                label = "Gaming mode",
+                label = "45ms Ultra-Low Latency Game Mode",
                 enabled = gamingIds.any { (byId[it]?.value ?: 0) != 0 },
                 aliases = gamingIds.filter { it in byId && it != writeId }.toSet(),
             )
@@ -46,7 +46,7 @@ object SwitchCatalog {
         }
 
         // Stable product order for the remaining proven toggles.
-        val order = listOf(9, 17, 26, 29, 38)
+        val order = listOf(9, 17, 26, 27, 29, 38)
         for (id in order) {
             if (id in consumed || id !in writableIds) continue
             val status = byId[id] ?: continue

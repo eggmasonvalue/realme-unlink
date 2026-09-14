@@ -6,23 +6,28 @@ import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothSocket
 import android.content.Context
 import android.util.Log
+import android.media.Ringtone
+import android.media.RingtoneManager
 import java.io.IOException
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 /**
  * Foreground-only headset session owner.
  *
  * Connects while the UI is active, keeps the RFCOMM socket open for seamless writes, and
- * disconnects when the UI backgrounds. Writes update local snapshot optimistically after a
- * successful status-0 response — they do **not** re-run the full discovery pass (that hung EQ).
+ * disconnects when the UI backgrounds. ALL transactions run off the UI thread on [Dispatchers.IO].
+ * Writes update local snapshot optimistically with rollback on error.
  */
 class HeadsetController(context: Context) {
     private val appContext = context.applicationContext
-    private val executor: ExecutorService = Executors.newSingleThreadExecutor()
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val closed = AtomicBoolean(false)
     private val foreground = AtomicBoolean(false)
     private val generation = AtomicInteger(0)
@@ -39,6 +44,29 @@ class HeadsetController(context: Context) {
 
     private val listener = AtomicReference<((UiEvent) -> Unit)?>(null)
 
+    @Volatile
+    private var activeRingtone: Ringtone? = null
+
+    fun toggleRingPhoneAlarm() {
+        val ring = activeRingtone
+        if (ring != null && ring.isPlaying) {
+            runCatching { ring.stop() }
+            activeRingtone = null
+            emitMessage("Ring Phone stopped", isError = false)
+        } else {
+            val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            val newRingtone = RingtoneManager.getRingtone(appContext, uri)
+            if (newRingtone != null) {
+                newRingtone.play()
+                activeRingtone = newRingtone
+                emitMessage("🔔 Phone is ringing!", isError = false)
+            } else {
+                emitMessage("Could not play ringtone", isError = true)
+            }
+        }
+    }
+
     sealed class UiEvent {
         data class State(val state: ConnectionState) : UiEvent()
         data class Message(val text: String, val isError: Boolean = false) : UiEvent()
@@ -49,20 +77,19 @@ class HeadsetController(context: Context) {
         listener.set(onEvent)
     }
 
-    /** Call from Activity.onResume. Safe to call repeatedly while already foreground. */
+    /** Call from Activity observer. Safe to call repeatedly while already foreground. */
     fun onForeground() {
         if (closed.get()) return
         foreground.set(true)
-        // Bump generation so a stale onPause disconnect cannot clobber a fresh connect.
         val gen = generation.incrementAndGet()
         Log.i(TAG, "onForeground gen=$gen session=${session != null}")
         emitState(ConnectionState.Connecting)
-        executor.execute {
-            if (!foreground.get() || gen != generation.get()) return@execute
+        scope.launch(Dispatchers.IO) {
+            if (!foreground.get() || gen != generation.get()) return@launch
             if (session != null && lastSnapshot != null) {
                 Log.i(TAG, "Reusing live session")
                 emitState(ConnectionState.Connected(lastSnapshot!!))
-                return@execute
+                return@launch
             }
             connectAndRefreshLocked(gen)
         }
@@ -72,7 +99,7 @@ class HeadsetController(context: Context) {
         Log.i(TAG, "onBackground")
         foreground.set(false)
         generation.incrementAndGet()
-        executor.execute {
+        scope.launch(Dispatchers.IO) {
             disconnectLocked()
         }
     }
@@ -80,8 +107,8 @@ class HeadsetController(context: Context) {
     fun refresh() {
         foreground.set(true)
         val gen = generation.incrementAndGet()
-        executor.execute {
-            if (!foreground.get()) return@execute
+        scope.launch(Dispatchers.IO) {
+            if (!foreground.get()) return@launch
             try {
                 emitBusy(true)
                 emitState(ConnectionState.Connecting)
@@ -96,113 +123,184 @@ class HeadsetController(context: Context) {
     }
 
     fun setNoiseValue(value: Int) {
-        write("noise control") { session, snap ->
-            val baseline = snap.noise ?: error("Noise control is not available")
-            val next = baseline.copy(value = value)
-            checkWrite(session.setNoiseControl(next))
-            snap.copy(noise = next)
-        }
+        write(
+            label = "noise control",
+            optimisticUpdate = { snap ->
+                val baseline = snap.noise ?: HeadsetProtocol.NoiseControlReading(1, 1, value)
+                snap.copy(noise = baseline.copy(value = value))
+            },
+            performWrite = { session ->
+                checkWrite(session.setNoiseControl(HeadsetProtocol.NoiseControlReading(1, 1, value)))
+            },
+        )
     }
 
     fun setEqId(eqId: Int) {
-        write("equalizer") { session, snap ->
-            checkWrite(session.setEqStatus(eqId))
-            snap.copy(currentEqId = eqId)
-        }
+        write(
+            label = "equalizer",
+            optimisticUpdate = { snap ->
+                val profiles = snap.eqProfiles.map {
+                    it.copy(selected = (it.id == eqId))
+                }
+                snap.copy(currentEqId = eqId, eqProfiles = profiles)
+            },
+            performWrite = { session ->
+                checkWrite(session.setEqStatus(eqId))
+            },
+        )
     }
 
     fun applyCustomEq(profile: HeadsetCapabilityDiscovery.EqProfile) {
-        write("custom EQ") { session, snap ->
-            checkWrite(session.setCustomEq(action = 2, profile = profile))
-            checkWrite(session.setEqStatus(profile.id))
-            val profiles = snap.eqProfiles.map {
-                if (it.id == profile.id) profile.copy(selected = true) else it.copy(selected = false)
-            }
-            snap.copy(currentEqId = profile.id, eqProfiles = profiles)
-        }
+        write(
+            label = "custom EQ",
+            optimisticUpdate = { snap ->
+                val profiles = snap.eqProfiles.map {
+                    if (it.id == profile.id) profile.copy(selected = true) else it.copy(selected = false)
+                }
+                snap.copy(currentEqId = profile.id, eqProfiles = profiles)
+            },
+            performWrite = { session ->
+                checkWrite(session.setCustomEq(action = 2, profile = profile))
+                checkWrite(session.setEqStatus(profile.id))
+            },
+        )
     }
 
     fun setBassBand(band: HeadsetCapabilityDiscovery.BassEngineValue) {
-        write("bass") { session, snap ->
-            checkWrite(session.setBassEngine(band))
-            val bands = snap.bassBands.map {
-                if (it.type == band.type) band else it
-            }
-            snap.copy(bassBands = bands)
-        }
+        write(
+            label = "bass",
+            optimisticUpdate = { snap ->
+                val bands = snap.bassBands.map {
+                    if (it.type == band.type) band else it
+                }
+                snap.copy(bassBands = bands)
+            },
+            performWrite = { session ->
+                checkWrite(session.setBassEngine(band))
+            },
+        )
     }
 
     fun setSwitch(id: Int, enabled: Boolean) {
-        write("feature") { session, snap ->
-            val logical = snap.switches.firstOrNull { it.id == id || id in it.aliases }
-            checkWrite(session.setSwitchFeature(id, enabled))
-            logical?.aliases?.forEach { alias ->
-                runCatching { checkWrite(session.setSwitchFeature(alias, enabled)) }
-            }
-            val switches = snap.switches.map { item ->
-                if (item.id == id || id in item.aliases || item.id == logical?.id) {
-                    item.copy(enabled = enabled)
-                } else {
-                    item
+        write(
+            label = "feature",
+            optimisticUpdate = { snap ->
+                val logical = snap.switches.firstOrNull { it.id == id || id in it.aliases }
+                val switches = snap.switches.map { item ->
+                    if (item.id == id || id in item.aliases || item.id == logical?.id) {
+                        item.copy(enabled = enabled)
+                    } else {
+                        item
+                    }
                 }
-            }
-            snap.copy(switches = switches)
-        }
+                snap.copy(switches = switches)
+            },
+            performWrite = { session ->
+                val logical = lastSnapshot?.switches?.firstOrNull { it.id == id || id in it.aliases }
+                checkWrite(session.setSwitchFeature(id, enabled))
+                logical?.aliases?.forEach { alias ->
+                    runCatching { checkWrite(session.setSwitchFeature(alias, enabled)) }
+                }
+            },
+        )
     }
+
+    fun setGameMode(enabled: Boolean) = setSwitch(SwitchCatalog.GAMING_PRIMARY_ID, enabled)
+    fun setVolumeEnhancer(enabled: Boolean) = setSwitch(9, enabled)
+    fun setDualDevice(enabled: Boolean) = setSwitch(17, enabled)
+    fun setSmartWindNoise(enabled: Boolean) = setSwitch(26, enabled)
+    fun setDynamicBass(enabled: Boolean) = setSwitch(29, enabled)
+    fun setHdAudio(enabled: Boolean) = setSwitch(38, enabled)
 
     fun setButtonMappings(mappings: List<HeadsetCapabilityDiscovery.KeyMapping>) {
-        write("buttons") { session, snap ->
-            checkWrite(session.setButtonMappings(mappings))
-            snap.copy(buttonMappings = mappings)
-        }
+        write(
+            label = "buttons",
+            optimisticUpdate = { snap ->
+                snap.copy(buttonMappings = mappings)
+            },
+            performWrite = { session ->
+                checkWrite(session.setButtonMappings(mappings))
+            },
+        )
     }
 
+    /**
+     * Update a single button mapping by merging with the latest snapshot state,
+     * avoiding stale-closure issues when multiple rapid changes are made in the UI.
+     */
+    fun setButtonMapping(changed: HeadsetCapabilityDiscovery.KeyMapping) {
+        write(
+            label = "buttons",
+            optimisticUpdate = { snap ->
+                val updated = snap.buttonMappings.map {
+                    if (it.button == changed.button && it.action == changed.action) changed else it
+                }
+                snap.copy(buttonMappings = updated)
+            },
+            performWrite = { session ->
+                // Read the latest snapshot (which includes the optimistic update)
+                // to build the full list for the wire protocol
+                val current = lastSnapshot?.buttonMappings ?: return@write
+                checkWrite(session.setButtonMappings(current))
+            },
+        )
+    }
+
+
     fun setFindMode(enabled: Boolean) {
-        write("find device") { session, snap ->
-            checkWrite(session.setFindMode(enabled))
-            snap.copy(findModeActive = enabled)
-        }
+        write(
+            label = "find device",
+            optimisticUpdate = { snap ->
+                snap.copy(findModeActive = enabled)
+            },
+            performWrite = { session ->
+                checkWrite(session.setFindMode(enabled))
+            },
+        )
     }
 
     fun close() {
         if (!closed.compareAndSet(false, true)) return
         foreground.set(false)
         generation.incrementAndGet()
-        executor.execute {
+        scope.launch(Dispatchers.IO) {
             disconnectLocked()
-            executor.shutdown()
         }
+        scope.cancel()
         listener.set(null)
     }
 
     private fun write(
         label: String,
-        block: (HeadsetSession, HeadsetSnapshot) -> HeadsetSnapshot,
+        optimisticUpdate: (HeadsetSnapshot) -> HeadsetSnapshot,
+        performWrite: (HeadsetSession) -> Unit,
     ) {
         if (closed.get()) return
         val gen = generation.get()
-        executor.execute {
-            if (!foreground.get() || gen != generation.get()) return@execute
-            emitBusy(true)
+        scope.launch(Dispatchers.IO) {
+            if (!foreground.get() || gen != generation.get()) return@launch
+            val currentSnap = lastSnapshot ?: return@launch
+            val beforeSnap = currentSnap
+            val optimisticSnap = optimisticUpdate(beforeSnap)
+
+            // Optimistically update and emit immediately
+            lastSnapshot = optimisticSnap
+            emitState(ConnectionState.Connected(optimisticSnap))
+
             try {
                 var live = session
-                var snap = lastSnapshot
-                if (live == null || snap == null) {
+                if (live == null) {
                     connectAndRefreshLocked(gen)
                     live = session
-                    snap = lastSnapshot
                 }
                 val sessionLive = live ?: error("Not connected")
-                val before = snap ?: error("No snapshot")
-                val after = block(sessionLive, before)
-                if (!foreground.get() || gen != generation.get()) return@execute
-                lastSnapshot = after
-                emitState(ConnectionState.Connected(after))
+                performWrite(sessionLive)
             } catch (error: Exception) {
                 Log.w(TAG, "Failed $label", error)
+                // Rollback optimistic update on error
+                lastSnapshot = beforeSnap
+                emitState(ConnectionState.Connected(beforeSnap))
                 handleSessionFailure(error, gen, userLabel = label)
-            } finally {
-                emitBusy(false)
             }
         }
     }
@@ -253,6 +351,12 @@ class HeadsetController(context: Context) {
                 return
             }
             session = connected
+            connected.onUnsolicitedFrame = { frame ->
+                Log.i(TAG, "Unsolicited frame from neckband: command=0x${frame.command.toString(16)} payload=${HeadsetProtocol.hex(frame.payload)}")
+                if (frame.command == 0x0501 && frame.payload.isNotEmpty() && (frame.payload[0] == 10.toByte() || frame.payload.contains(10.toByte()))) {
+                    toggleRingPhoneAlarm()
+                }
+            }
             lastSnapshot = null
             val snapshot = readSnapshot(connected)
             lastSnapshot = snapshot
@@ -277,7 +381,6 @@ class HeadsetController(context: Context) {
     ) {
         Log.w(TAG, "Session failure", error)
         disconnectLocked()
-        // Stale generation / background: a newer onForeground will reconnect; don't flash an error.
         if (!foreground.get() || gen != generation.get()) return
         val message = error.message.orEmpty()
         if (message.contains("cancel", ignoreCase = true)) {
@@ -291,7 +394,7 @@ class HeadsetController(context: Context) {
         emitState(
             ConnectionState.Unavailable(
                 title = title,
-                message = "Wake the earbuds and try again.",
+                message = "Separate magnetic earbud clasps to power on neckband",
                 canRetry = true,
             ),
         )

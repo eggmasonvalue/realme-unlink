@@ -1,8 +1,12 @@
 # Gradle / local tooling
 .gradle/
 .kotlin/
-.pi/
 build/
+app/build/
+
+# Pi harness data (preserve orchestrated todos)
+.pi/*
+!.pi/todos/
 
 # Android Studio / IntelliJ
 .idea/

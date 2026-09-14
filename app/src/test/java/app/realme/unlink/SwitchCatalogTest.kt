@@ -16,11 +16,11 @@ class SwitchCatalogTest {
             ),
         )
         assertEquals(2, logical.size)
-        val gaming = logical.first { it.label == "Gaming mode" }
+        val gaming = logical.first { it.label == "45ms Ultra-Low Latency Game Mode" }
         assertEquals(SwitchCatalog.GAMING_PRIMARY_ID, gaming.id)
         assertTrue(gaming.enabled)
         assertEquals(setOf(6), gaming.aliases)
-        assertEquals("Voice enhancement", logical[1].label)
+        assertEquals("Volume Enhancer", logical[1].label)
     }
 
     @Test

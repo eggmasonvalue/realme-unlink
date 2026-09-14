@@ -13,6 +13,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import app.realme.unlink.ui.UnlinkApp
 import app.realme.unlink.ui.UnlinkTheme
 import java.util.concurrent.Executors
@@ -49,6 +51,29 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        lifecycle.addObserver(object : DefaultLifecycleObserver {
+            override fun onStart(owner: LifecycleOwner) {
+                Log.i(TAG, "onStart -> connecting headset lifecycle")
+                if (!hasBluetoothPermission()) {
+                    connectionState = ConnectionState.PermissionNeeded
+                    return
+                }
+                if (connectionState !is ConnectionState.Connected) {
+                    connectionState = ConnectionState.Connecting
+                }
+                controller.onForeground()
+            }
+
+            override fun onStop(owner: LifecycleOwner) {
+                Log.i(TAG, "onStop -> disconnecting RFCOMM cleanly")
+                controller.onBackground()
+            }
+
+            override fun onDestroy(owner: LifecycleOwner) {
+                controller.close()
+            }
+        })
+
         setContent {
             UnlinkTheme {
                 UnlinkApp(
@@ -69,42 +94,31 @@ class MainActivity : ComponentActivity() {
                     onApplyCustomEq = controller::applyCustomEq,
                     onBassBand = controller::setBassBand,
                     onSwitch = controller::setSwitch,
-                    onButtons = controller::setButtonMappings,
+                    onButtons = controller::setButtonMapping,
                     onFindMode = controller::setFindMode,
                 )
             }
         }
 
-        if (BuildConfig.ENABLE_DIAGNOSTICS &&
-            intent?.getBooleanExtra(EXTRA_RUN_EVIDENCE_MATRIX, false) == true
-        ) {
-            runEvidenceMatrixAutomation()
+        if (BuildConfig.ENABLE_DIAGNOSTICS) {
+            if (intent?.getBooleanExtra(EXTRA_RUN_BUTTON_TEST, false) == true) {
+                runButtonTestAutomation()
+            } else if (intent?.getBooleanExtra(EXTRA_RUN_EVIDENCE_MATRIX, false) == true) {
+                runEvidenceMatrixAutomation()
+            }
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        Log.i(TAG, "onResume")
-        if (!hasBluetoothPermission()) {
-            connectionState = ConnectionState.PermissionNeeded
-            return
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (BuildConfig.ENABLE_DIAGNOSTICS) {
+            if (intent.getBooleanExtra(EXTRA_RUN_BUTTON_TEST, false) == true) {
+                runButtonTestAutomation()
+            } else if (intent.getBooleanExtra(EXTRA_RUN_EVIDENCE_MATRIX, false) == true) {
+                runEvidenceMatrixAutomation()
+            }
         }
-        // Enter connecting immediately so the UI never sits on "Checking" waiting for a tap.
-        if (connectionState !is ConnectionState.Connected) {
-            connectionState = ConnectionState.Connecting
-        }
-        controller.onForeground()
-    }
-
-    override fun onPause() {
-        Log.i(TAG, "onPause")
-        controller.onBackground()
-        super.onPause()
-    }
-
-    override fun onDestroy() {
-        controller.close()
-        super.onDestroy()
     }
 
     private fun hasBluetoothPermission(): Boolean {
@@ -147,9 +161,35 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun runButtonTestAutomation() {
+        if (!hasBluetoothPermission()) {
+            requestBluetoothPermission()
+            return
+        }
+        val executor = Executors.newSingleThreadExecutor()
+        executor.execute {
+            try {
+                val probe = ButtonMappingPersistenceProbe(applicationContext)
+                val result = probe.run()
+                Log.i(
+                    BUTTON_TEST_TAG,
+                    "Button test finished device=${result.deviceName} " +
+                        "findings=${result.summaryFindings.size}",
+                )
+                result.summaryFindings.forEach { Log.i(BUTTON_TEST_TAG, "RESULT: $it") }
+            } catch (error: Exception) {
+                Log.e(BUTTON_TEST_TAG, "Button test failed", error)
+            } finally {
+                executor.shutdown()
+            }
+        }
+    }
+
     companion object {
         const val EXTRA_RUN_EVIDENCE_MATRIX = "run_evidence_matrix"
+        const val EXTRA_RUN_BUTTON_TEST = "run_button_test"
         private const val EVIDENCE_TAG = "UnlinkEvidence"
+        private const val BUTTON_TEST_TAG = "UnlinkButtonTest"
         private const val TAG = "UnlinkMain"
         private val REQUIRED_PERMISSIONS = arrayOf(
             Manifest.permission.BLUETOOTH_CONNECT,

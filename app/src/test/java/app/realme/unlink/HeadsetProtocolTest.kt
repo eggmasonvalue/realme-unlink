@@ -139,6 +139,26 @@ class HeadsetProtocolTest {
         )
     }
 
+    @Test
+    fun encodesCustom6BandEqPayload() {
+        val payload = HeadsetProtocol.encodeCustom6BandEqPayload(
+            action = 2,
+            id = 4,
+            name = "Custom",
+            minValue = -6,
+            maxValue = 6,
+            dbValues = listOf(-2, 0, 2, 4, 1, -1),
+        )
+
+        assertEquals(2, payload[0].toInt()) // action=2 modify
+        assertEquals(-6, payload[1].toInt())
+        assertEquals(6, payload[2].toInt())
+        assertEquals(4, payload[3].toInt()) // id=4
+        assertEquals(6, payload[4].toInt()) // name length = 6 ("Custom")
+        assertEquals('C'.code.toByte(), payload[5])
+        assertEquals(6, payload[11].toInt()) // 6 bands
+    }
+
     private class ChunkedInputStream(
         private val bytes: ByteArray,
         private val maxChunk: Int,
