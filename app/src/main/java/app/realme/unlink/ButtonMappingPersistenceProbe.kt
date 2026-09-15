@@ -382,7 +382,7 @@ class ButtonMappingPersistenceProbe(private val context: Context) {
     @SuppressLint("MissingPermission")
     private fun bluetoothAdapter(): BluetoothAdapter {
         return context.getSystemService(BluetoothManager::class.java)?.adapter
-            ?: BluetoothAdapter.getDefaultAdapter()
+            ?: @Suppress("DEPRECATION") BluetoothAdapter.getDefaultAdapter()
             ?: error("No Bluetooth adapter found")
     }
 

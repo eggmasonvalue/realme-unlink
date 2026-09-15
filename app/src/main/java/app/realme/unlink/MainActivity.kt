@@ -1,6 +1,7 @@
 package app.realme.unlink
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -191,6 +192,7 @@ class MainActivity : ComponentActivity() {
         private const val EVIDENCE_TAG = "UnlinkEvidence"
         private const val BUTTON_TEST_TAG = "UnlinkButtonTest"
         private const val TAG = "UnlinkMain"
+        @SuppressLint("InlinedApi")
         private val REQUIRED_PERMISSIONS = arrayOf(
             Manifest.permission.BLUETOOTH_CONNECT,
             Manifest.permission.BLUETOOTH_SCAN,

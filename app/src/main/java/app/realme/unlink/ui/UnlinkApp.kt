@@ -29,6 +29,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.BatteryChargingFull
@@ -42,7 +43,6 @@ import androidx.compose.material.icons.outlined.Headphones
 import androidx.compose.material.icons.outlined.Hearing
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.MusicNote
-import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Sensors
@@ -856,7 +856,8 @@ private fun GestureDropdownMenu(
     onSelectFunction: (Int) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val functions = listOf(1, 2, 3, 4, 5, 6, 7, 0)
+    val defaultFunctions = listOf(1, 2, 3, 4, 5, 6, 7, 0)
+    val functions = if (selectedFunction in defaultFunctions) defaultFunctions else defaultFunctions + selectedFunction
 
     Box {
         Surface(
@@ -911,6 +912,8 @@ private fun GestureDropdownMenu(
                             5 -> Icons.Outlined.Hearing
                             6 -> Icons.Outlined.SwapHoriz
                             7 -> Icons.Outlined.Sensors
+                            8, 9 -> Icons.AutoMirrored.Outlined.VolumeUp
+                            10 -> Icons.Outlined.SpeakerPhone
                             else -> Icons.Outlined.Block
                         }
                         Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -935,7 +938,7 @@ private fun HardwareButtonsCard(
             HeadsetCapabilityDiscovery.KeyMapping(deviceType = 1, button = 1, action = 4, function = 5),
         )
         val activeMappings = if (mappings.isNotEmpty()) {
-            mappings.filter { it.button == 1 || it.deviceType == 1 }
+            mappings.filter { it.button == 1 }
                 .distinctBy { it.action }
                 .sortedBy { it.action }
         } else defaultMfbMappings
@@ -1112,7 +1115,7 @@ private fun SpatialAudioCard() {
                 },
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Icon(Icons.Outlined.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
+                Icon(Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
                 Text("Configure Spatial Audio in System Settings")
             }
@@ -1294,6 +1297,6 @@ private fun CustomEqSheet(
 
 private fun formatFreq(hz: Int): String = when {
     hz >= 1000 && hz % 1000 == 0 -> "${hz / 1000} kHz"
-    hz >= 1000 -> String.format("%.1f kHz", hz / 1000f)
+    hz >= 1000 -> String.format(java.util.Locale.US, "%.1f kHz", hz / 1000f)
     else -> "$hz Hz"
 }

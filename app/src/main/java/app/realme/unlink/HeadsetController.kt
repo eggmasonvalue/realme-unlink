@@ -263,10 +263,10 @@ class HeadsetController(context: Context) {
         if (!closed.compareAndSet(false, true)) return
         foreground.set(false)
         generation.incrementAndGet()
-        scope.launch(Dispatchers.IO) {
+        scope.launch(Dispatchers.IO + kotlinx.coroutines.NonCancellable) {
             disconnectLocked()
+            scope.cancel()
         }
-        scope.cancel()
         listener.set(null)
     }
 
@@ -404,6 +404,10 @@ class HeadsetController(context: Context) {
     }
 
     private fun disconnectLocked() {
+        activeRingtone?.let { ring ->
+            if (ring.isPlaying) runCatching { ring.stop() }
+            activeRingtone = null
+        }
         try {
             session?.close()
         } catch (_: Exception) {
