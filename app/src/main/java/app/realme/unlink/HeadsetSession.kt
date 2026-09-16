@@ -185,6 +185,11 @@ class HeadsetSession private constructor(
         return transact(HeadsetProtocol.NOISE_LEVEL_COMMAND, byteArrayOf(1, 1))
     }
 
+    fun queryButtonMappings(): HeadsetProtocol.Frame = transact(
+        HeadsetCapabilityDiscovery.buttonMappingQuery.command,
+        HeadsetCapabilityDiscovery.buttonMappingQuery.payload,
+    )
+
     fun setButtonMappings(entries: List<HeadsetCapabilityDiscovery.KeyMapping>): HeadsetProtocol.Frame {
         require(entries.isNotEmpty()) { "At least one button mapping is required" }
         require(entries.size <= 0xFF) { "Too many button mappings" }

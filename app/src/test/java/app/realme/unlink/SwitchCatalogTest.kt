@@ -1,33 +1,35 @@
 package app.realme.unlink
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SwitchCatalogTest {
     @Test
-    fun collapsesGamingModeIdsIntoOneLogicalSwitch() {
+    fun keepsGameModeAndAutoAnswerAsIndependentSwitches() {
         val logical = SwitchCatalog.logicalSwitches(
             listOf(
                 HeadsetCapabilityDiscovery.SwitchFeatureStatus(6, 0),
                 HeadsetCapabilityDiscovery.SwitchFeatureStatus(8, 1),
-                HeadsetCapabilityDiscovery.SwitchFeatureStatus(9, 0),
-                HeadsetCapabilityDiscovery.SwitchFeatureStatus(4, 0), // rejected id — hide
+                HeadsetCapabilityDiscovery.SwitchFeatureStatus(9, 1), // unresolved — hide
             ),
         )
-        assertEquals(2, logical.size)
-        val gaming = logical.first { it.label == "45ms Ultra-Low Latency Game Mode" }
-        assertEquals(SwitchCatalog.GAMING_PRIMARY_ID, gaming.id)
-        assertTrue(gaming.enabled)
-        assertEquals(setOf(6), gaming.aliases)
-        assertEquals("Volume Enhancer", logical[1].label)
+
+        assertEquals(listOf(6, 8), logical.map { it.id })
+        assertEquals("Game mode", logical[0].label)
+        assertFalse(logical[0].enabled)
+        assertEquals("Auto answer", logical[1].label)
+        assertTrue(logical[1].enabled)
     }
 
     @Test
-    fun omitsRejectedSwitchIds() {
+    fun omitsUnvalidatedSwitchIds() {
         val logical = SwitchCatalog.logicalSwitches(
             listOf(
                 HeadsetCapabilityDiscovery.SwitchFeatureStatus(5, 1),
+                HeadsetCapabilityDiscovery.SwitchFeatureStatus(9, 1),
+                HeadsetCapabilityDiscovery.SwitchFeatureStatus(27, 1),
                 HeadsetCapabilityDiscovery.SwitchFeatureStatus(26, 1),
             ),
         )

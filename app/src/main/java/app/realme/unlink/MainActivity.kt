@@ -3,7 +3,6 @@ package app.realme.unlink
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -18,7 +17,6 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import app.realme.unlink.ui.UnlinkApp
 import app.realme.unlink.ui.UnlinkTheme
-import java.util.concurrent.Executors
 
 class MainActivity : ComponentActivity() {
     private lateinit var controller: HeadsetController
@@ -26,13 +24,18 @@ class MainActivity : ComponentActivity() {
     private var connectionState by mutableStateOf<ConnectionState>(ConnectionState.Checking)
     private var busy by mutableStateOf(false)
     private var snackbarMessage by mutableStateOf<String?>(null)
+    private var diagnosticMode = false
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { result ->
         if (result.values.all { it }) {
-            connectionState = ConnectionState.Connecting
-            controller.onForeground()
+            if (diagnosticMode) {
+                Diagnostics.handleIntent(this, intent)
+            } else {
+                connectionState = ConnectionState.Connecting
+                controller.onForeground()
+            }
         } else {
             connectionState = ConnectionState.PermissionNeeded
         }
@@ -41,6 +44,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        diagnosticMode = Diagnostics.isDiagnosticIntent(intent)
         controller = HeadsetController(applicationContext)
         controller.setListener { event ->
             runOnUiThread {
@@ -54,6 +58,10 @@ class MainActivity : ComponentActivity() {
 
         lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onStart(owner: LifecycleOwner) {
+                if (diagnosticMode) {
+                    Log.i(TAG, "onStart -> diagnostic owns headset transport")
+                    return
+                }
                 Log.i(TAG, "onStart -> connecting headset lifecycle")
                 if (!hasBluetoothPermission()) {
                     connectionState = ConnectionState.PermissionNeeded
@@ -101,97 +109,34 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        if (BuildConfig.ENABLE_DIAGNOSTICS) {
-            if (intent?.getBooleanExtra(EXTRA_RUN_BUTTON_TEST, false) == true) {
-                runButtonTestAutomation()
-            } else if (intent?.getBooleanExtra(EXTRA_RUN_EVIDENCE_MATRIX, false) == true) {
-                runEvidenceMatrixAutomation()
-            }
-        }
+        Diagnostics.handleIntent(this, intent)
     }
 
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        if (BuildConfig.ENABLE_DIAGNOSTICS) {
-            if (intent.getBooleanExtra(EXTRA_RUN_BUTTON_TEST, false) == true) {
-                runButtonTestAutomation()
-            } else if (intent.getBooleanExtra(EXTRA_RUN_EVIDENCE_MATRIX, false) == true) {
-                runEvidenceMatrixAutomation()
+        val wasDiagnostic = diagnosticMode
+        diagnosticMode = Diagnostics.isDiagnosticIntent(intent)
+        when {
+            diagnosticMode -> {
+                controller.onBackground()
+                Diagnostics.handleIntent(this, intent)
             }
+            wasDiagnostic && hasBluetoothPermission() -> controller.onForeground()
         }
     }
 
-    private fun hasBluetoothPermission(): Boolean {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return true
-        return REQUIRED_PERMISSIONS.all {
-            ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
-        }
+    internal fun hasBluetoothPermission(): Boolean = REQUIRED_PERMISSIONS.all {
+        ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
     }
 
-    private fun requestBluetoothPermission() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-            connectionState = ConnectionState.Connecting
-            controller.onForeground()
-            return
-        }
+    internal fun requestBluetoothPermission() {
         permissionLauncher.launch(REQUIRED_PERMISSIONS)
     }
 
-    private fun runEvidenceMatrixAutomation() {
-        if (!hasBluetoothPermission()) {
-            requestBluetoothPermission()
-            return
-        }
-        val executor = Executors.newSingleThreadExecutor()
-        executor.execute {
-            try {
-                val probe = HeadsetEvidenceProbe(applicationContext)
-                val result = probe.run()
-                Log.i(
-                    EVIDENCE_TAG,
-                    "Evidence matrix finished device=${result.deviceName} " +
-                        "findings=${result.findings.size}",
-                )
-                result.findings.forEach { Log.i(EVIDENCE_TAG, "FINDING: $it") }
-            } catch (error: Exception) {
-                Log.e(EVIDENCE_TAG, "Evidence matrix failed", error)
-            } finally {
-                executor.shutdown()
-            }
-        }
-    }
-
-    private fun runButtonTestAutomation() {
-        if (!hasBluetoothPermission()) {
-            requestBluetoothPermission()
-            return
-        }
-        val executor = Executors.newSingleThreadExecutor()
-        executor.execute {
-            try {
-                val probe = ButtonMappingPersistenceProbe(applicationContext)
-                val result = probe.run()
-                Log.i(
-                    BUTTON_TEST_TAG,
-                    "Button test finished device=${result.deviceName} " +
-                        "findings=${result.summaryFindings.size}",
-                )
-                result.summaryFindings.forEach { Log.i(BUTTON_TEST_TAG, "RESULT: $it") }
-            } catch (error: Exception) {
-                Log.e(BUTTON_TEST_TAG, "Button test failed", error)
-            } finally {
-                executor.shutdown()
-            }
-        }
-    }
-
     companion object {
-        const val EXTRA_RUN_EVIDENCE_MATRIX = "run_evidence_matrix"
-        const val EXTRA_RUN_BUTTON_TEST = "run_button_test"
-        private const val EVIDENCE_TAG = "UnlinkEvidence"
-        private const val BUTTON_TEST_TAG = "UnlinkButtonTest"
         private const val TAG = "UnlinkMain"
+
         @SuppressLint("InlinedApi")
         private val REQUIRED_PERMISSIONS = arrayOf(
             Manifest.permission.BLUETOOTH_CONNECT,

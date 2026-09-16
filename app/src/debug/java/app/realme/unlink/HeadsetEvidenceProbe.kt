@@ -316,11 +316,11 @@ class HeadsetEvidenceProbe(private val context: Context) {
     }
 
     private fun alternateButtonFunction(function: Int): Int = when (function) {
-        1 -> 2 // play/pause → next
-        2 -> 1 // next → play/pause
-        3 -> 2 // previous → next
-        5 -> 1 // noise reduction → play/pause
-        6 -> 1 // device change → play/pause
+        1 -> 6 // play/pause → next
+        2 -> 1 // device switch → play/pause
+        3 -> 1 // noise mode → play/pause
+        5 -> 6 // previous → next
+        6 -> 1 // next → play/pause
         8 -> 9 // volume up → down
         9 -> 8 // volume down → up
         else -> function

@@ -12,6 +12,14 @@ import java.io.IOException
 class ButtonMappingPersistenceProbe(private val context: Context) {
     companion object {
         const val TAG = "UnlinkButtonTest"
+
+        val CONFIRMED_BASELINE: List<HeadsetCapabilityDiscovery.KeyMapping> = listOf(
+            HeadsetCapabilityDiscovery.KeyMapping(1, 1, 1, 1),
+            HeadsetCapabilityDiscovery.KeyMapping(1, 1, 2, 6),
+            HeadsetCapabilityDiscovery.KeyMapping(1, 1, 3, 5),
+            HeadsetCapabilityDiscovery.KeyMapping(1, 1, 4, 3),
+            HeadsetCapabilityDiscovery.KeyMapping(1, 4, 1, 8),
+        )
     }
 
     @Volatile
@@ -46,8 +54,140 @@ class ButtonMappingPersistenceProbe(private val context: Context) {
         val summaryFindings: List<String>,
     )
 
+    /**
+     * Recovers the exact, empirically confirmed factory mapping after an interrupted probe.
+     * The write is allowed only when the headset reports the same five physical mapping slots,
+     * then verified both immediately and across a fresh RFCOMM connection.
+     */
+    @SuppressLint("MissingPermission")
+    fun restoreConfirmedBaseline(): String {
+        val adapter = bluetoothAdapter()
+        check(adapter.isEnabled) { "Bluetooth is disabled" }
+        val device = adapter.bondedDevices.firstOrNull { it.isTarget() }
+            ?: error("Target neckband not bonded")
+        var writeAttempted = false
+
+        try {
+            var session = getOrOpenSession(adapter, device)
+            val current = readButtonMappings(session)
+            val identity: (HeadsetCapabilityDiscovery.KeyMapping) -> Triple<Int, Int, Int> = {
+                Triple(it.deviceType, it.button, it.action)
+            }
+            check(current.map(identity).toSet() == CONFIRMED_BASELINE.map(identity).toSet() &&
+                current.size == CONFIRMED_BASELINE.size
+            ) {
+                "Refusing baseline recovery: mapping slots differ from confirmed hardware: $current"
+            }
+
+            val expectedByIdentity = CONFIRMED_BASELINE.associateBy(identity)
+            val target = current.map { expectedByIdentity.getValue(identity(it)) }
+            if (current != target) {
+                writeAttempted = true
+                val status = HeadsetProtocol.parseSetStatus(session.setButtonMappings(target))
+                check(status == 0) { "Baseline recovery rejected with status=$status" }
+                check(readButtonMappings(session) == target) {
+                    "Baseline recovery failed immediate read-back"
+                }
+            }
+
+            session = forceReconnect(adapter, device)
+            check(readButtonMappings(session) == target) {
+                "Baseline recovery did not persist across RFCOMM reconnect"
+            }
+            return "Confirmed baseline restored and verified across reconnect: $target"
+        } catch (failure: Exception) {
+            if (writeAttempted) {
+                try {
+                    val recovery = forceReconnect(adapter, device)
+                    val status = HeadsetProtocol.parseSetStatus(
+                        recovery.setButtonMappings(CONFIRMED_BASELINE),
+                    )
+                    check(status == 0 && readButtonMappings(recovery) == CONFIRMED_BASELINE) {
+                        "Emergency baseline restoration could not be verified"
+                    }
+                } catch (restoreFailure: Exception) {
+                    failure.addSuppressed(restoreFailure)
+                    Log.e(TAG, "EMERGENCY BASELINE RESTORATION FAILED", restoreFailure)
+                }
+            }
+            throw failure
+        } finally {
+            closeActiveSession()
+        }
+    }
+
+    /**
+     * Validates one conservative remap per reported slot. Every attempted mutation is followed by
+     * immediate and reconnect read-back, then a confirmed-baseline restore with the same checks.
+     */
+    @SuppressLint("MissingPermission")
+    fun validateConservativeRemaps(): List<String> {
+        val adapter = bluetoothAdapter()
+        check(adapter.isEnabled) { "Bluetooth is disabled" }
+        val device = adapter.bondedDevices.firstOrNull { it.isTarget() }
+            ?: error("Target neckband not bonded")
+        val results = mutableListOf<String>()
+        var session = getOrOpenSession(adapter, device)
+        val baseline = readButtonMappings(session)
+        check(baseline == CONFIRMED_BASELINE) {
+            "Refusing remap validation: expected confirmed baseline, got $baseline"
+        }
+        val alternates = listOf(6, 1, 1, 1, 1)
+
+        try {
+            baseline.indices.forEach { index ->
+                val target = baseline.toMutableList().also {
+                    it[index] = it[index].copy(function = alternates[index])
+                }
+                var writeAttempted = false
+                try {
+                    writeAttempted = true
+                    val status = HeadsetProtocol.parseSetStatus(session.setButtonMappings(target))
+                    if (status != 0) {
+                        results += "slot $index rejected conservative remap with status=$status"
+                    } else {
+                        val immediate = readButtonMappings(session)
+                        val applied = immediate == target
+                        Thread.sleep(1_000)
+                        session = forceReconnect(adapter, device)
+                        val afterReconnect = readButtonMappings(session)
+                        val persisted = afterReconnect == target
+                        results += "slot $index applied=$applied persisted=$persisted " +
+                            "f${baseline[index].function}→f${alternates[index]}"
+                    }
+                } finally {
+                    if (writeAttempted) {
+                        session = forceReconnect(adapter, device)
+                        val restoreStatus = HeadsetProtocol.parseSetStatus(
+                            session.setButtonMappings(CONFIRMED_BASELINE),
+                        )
+                        check(restoreStatus == 0) {
+                            "slot $index baseline restore rejected with status=$restoreStatus"
+                        }
+                        check(readButtonMappings(session) == CONFIRMED_BASELINE) {
+                            "slot $index baseline restore failed immediate read-back"
+                        }
+                        session = forceReconnect(adapter, device)
+                        check(readButtonMappings(session) == CONFIRMED_BASELINE) {
+                            "slot $index baseline restore failed reconnect read-back"
+                        }
+                    }
+                }
+            }
+            return results
+        } finally {
+            closeActiveSession()
+        }
+    }
+
+    @Deprecated(
+        message = "Unsafe exhaustive mutation matrix; use validateConservativeRemaps",
+        level = DeprecationLevel.ERROR,
+    )
+    @Suppress("UNREACHABLE_CODE")
     @SuppressLint("MissingPermission")
     fun run(): ComprehensiveResult {
+        error("Unsafe exhaustive button mutation matrix is disabled")
         Log.i(TAG, "==========================================================")
         Log.i(TAG, "=== STARTING HARDWARE BUTTON MAPPING PERSISTENCE PROBE ===")
         Log.i(TAG, "==========================================================")
@@ -88,11 +228,11 @@ class ButtonMappingPersistenceProbe(private val context: Context) {
             // Candidate functions to test per mapping
             val candidateFunctions = listOf(
                 1,  // Play / Pause
-                2,  // Next Track
-                3,  // Previous Track
-                4,  // Voice Assistant
-                5,  // Noise Mode
-                6,  // Switch Device
+                2,  // Switch Device
+                3,  // Voice Assistant (verified)
+                4,  // Unknown
+                5,  // Previous Track
+                6,  // Next Track
                 7,  // Game Mode
                 8,  // Volume Up
                 9,  // Volume Down

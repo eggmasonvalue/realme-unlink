@@ -1,59 +1,65 @@
-# Code Conventions (`context/CONVENTIONS.md`)
+# Code Conventions
 
-## Environment Setup
+## Platform
+
+- Target Android 17 / API 37 only.
+- Match only `realme Buds Wireless 5 ANC`.
+- Keep `INTERNET`, foreground-service, boot, and wake-lock permissions absent.
+- Keep the Quick Settings tile as the sole production entrypoint.
+
+## Verification
 
 ```bash
-export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
-export ANDROID_HOME="$HOME/.local/share/android/sdk"
-export ANDROID_SDK_ROOT="$ANDROID_HOME"
-export PATH="$HOME/.local/share/gradle/gradle-9.5.0/bin:$ANDROID_HOME/platform-tools:$PATH"
+./gradlew compileDebugKotlin
+./gradlew testDebugUnitTest
+./gradlew :app:lintDebug
+./gradlew :app:assembleDebug
+./gradlew :app:assembleRelease
+npx --yes markdownlint-cli2
+git diff --check
 ```
 
----
+## Hardware Safety
 
-## Build, Test, and Lint Commands
+- Obtain explicit confirmation before using ADB or shared hardware.
+- Establish baseline, perform one reversible mutation, read back, restore immediately, and read back restoration.
+- Stop on ambiguous state or failed restoration.
+- Use official-app writes plus GET-only diagnostics for correlation.
+- Store raw captures in `.pi/artifacts/`; keep todo evidence compact.
 
-- Compile Kotlin debug: `./gradlew compileDebugKotlin`
-- Assemble debug APK: `./gradlew :app:assembleDebug`
-- Run unit tests: `./gradlew testDebugUnitTest`
-- Run Android Lint: `./gradlew :app:lintDebug`
-- Run Markdown Lint: `npx --yes markdownlint-cli2`
+## Bluetooth
 
----
+- Run socket I/O on `Dispatchers.IO`.
+- Serialize session operations.
+- Match responses by command and transfer ID.
+- Close the socket to cancel blocked reads.
+- Treat transport errors as session failures and decode errors as per-feature failures.
+- Bind sessions to foreground lifecycle generation ownership.
+- Stop active Find neckband mode before teardown.
+- Use `0x012C`/`0x041B` for Dynamic Audio bands; omit `0x0124`.
 
-## Hardware & Safety Rules
+## Writes
 
-- Never run `adb` commands without explicit user instruction and confirmation that no other session is testing.
-- Never issue unvalidated or blind writes to headset hardware.
-- Implement read-back verification and baseline restoration for all hardware mutation tests.
-- Support only confirmed writable switch IDs (`6, 8, 9, 17, 26, 27, 29, 38`).
-- Keep `INTERNET` permission out of `AndroidManifest.xml`.
+- Preserve device-reported schemas and ranges.
+- Gate controls on successful reads and advertised capabilities.
+- Apply optimistic state with error rollback.
+- Compensate multi-command Custom EQ failures back to the prior profile.
+- Use switch ID `6` for Game mode, `8` for Auto answer, `26` for Smart de-wind, and `29` for Dynamic Audio.
+- Offer MFB functions `0`, `1`, `4`, `5`, `6`, and `17` only.
+- Keep Volume enhancer and ANC-button mode-list selection non-writable until their representations are resolved.
 
----
+## Compose
 
-## Threading & Bluetooth Concurrency
+- Use Material 3 Expressive with dynamic color and bundled Google Sans Flex throughout.
+- Keep primary actions direct; use sheets for secondary configuration.
+- Use one shared MFB action picker rather than repeating choices per gesture.
+- Keep device identity, connection, and battery in one header.
+- Use primary, secondary, and tertiary roles as restrained semantic accents.
+- Render unavailable state instead of fabricating fallback hardware data.
 
-- Run all Bluetooth socket I/O strictly on `Dispatchers.IO`. Never perform socket reads or writes on the Android Main (UI) looper.
-- Guard all session writes with optimistic local updates and error-triggered rollbacks.
-- Cancel blocked socket reads by closing the underlying `BluetoothSocket`.
-- Bind session connections strictly to the foreground lifecycle (`onStart`/`onStop`). Disconnect RFCOMM cleanly upon backgrounding.
+## Diagnostics
 
----
-
-## Protocol & Wire Format
-
-- Encode packet framing with prefix `0xAA`, 7-bit varint length, control byte, reserved byte `0x00`, and little-endian TL packet.
-- Check the high bit (`command | 0x8000`) and matching transfer ID for response frames.
-- Ignore unsolicited frames (`0x0501`) during synchronous request-response transaction matching.
-- Route unsolicited `0x0501` frames containing payload byte `10` (`0x0A`) to the ring phone alarm handler.
-- Use multi-band bass commands (`0x012C` read, `0x041B` write); never send direct bass command `0x0124`.
-
----
-
-## Compose & UI
-
-- Use Material 3 Expressive components (`ExperimentalMaterial3ExpressiveApi`).
-- Set custom font family to `GoogleSansFlex`.
-- Never duplicate device title, connection status, or battery indicators in multiple cards.
-- Render hardware controls according to neckband physical button semantics (MFB, Volume, ANC key).
-- Use `path:line[:column]` format for all file references in comments and logs.
+- Keep exploratory and write-capable probes under `src/debug`.
+- Keep the release diagnostics bridge a no-op.
+- Separate GET-only diagnostics from write-capable probes.
+- Reference files as `path:line[:column]`.

@@ -24,6 +24,12 @@ object EqSuggestions {
         Suggestion("bright", "Bright", listOf(-0.15f, -0.05f, 0.1f, 0.35f, 0.65f, 0.75f), listOf(-1, 0, 1, 2, 4, 5)),
     )
 
+    fun matchingSuggestion(
+        profile: HeadsetCapabilityDiscovery.EqProfile,
+    ): Suggestion? = suggestions.firstOrNull { suggestion ->
+        apply(profile, suggestion).dbValues == profile.dbValues
+    }
+
     fun apply(
         profile: HeadsetCapabilityDiscovery.EqProfile,
         suggestion: Suggestion,

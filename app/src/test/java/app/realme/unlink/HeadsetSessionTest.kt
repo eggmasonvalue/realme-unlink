@@ -50,6 +50,34 @@ class HeadsetSessionTest {
     }
 
     @Test
+    fun buttonMappingQueryUsesTheCanonicalReadOnlyPayload() {
+        val output = ByteArrayOutputStream()
+        val session = HeadsetSession.forTesting(
+            input = ByteArrayInputStream(
+                response(HeadsetProtocol.KEY_FUNCTION_COMMAND, 0, byteArrayOf(0)),
+            ),
+            output = output,
+        )
+
+        try {
+            session.queryButtonMappings()
+
+            assertArrayEquals(
+                HeadsetProtocol.wrap(
+                    HeadsetProtocol.encode(
+                        HeadsetProtocol.KEY_FUNCTION_COMMAND,
+                        0,
+                        byteArrayOf(14, 1, 3, 4, 5, 6, 11, 12, 8, 13, 17, 31, 26, 27, 0),
+                    ),
+                ),
+                output.toByteArray(),
+            )
+        } finally {
+            session.close()
+        }
+    }
+
+    @Test
     fun sendsAllOutboundFragmentsBeforeReadingTheResponse() {
         val requestPayload = ByteArray(2_100) { it.toByte() }
         val request = HeadsetProtocol.encode(0x0123, 0, requestPayload)

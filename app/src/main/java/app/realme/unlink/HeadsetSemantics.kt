@@ -85,20 +85,11 @@ object HeadsetSemantics {
     }
 
     fun switchFeatureLabel(featureId: Int): String? = when (featureId) {
-        5 -> "Power saving"
-        6, 8 -> "45ms Ultra-Low Latency Game Mode"
-        7 -> "Party mode"
-        9 -> "Volume Enhancer"
-        11 -> "HearID"
-        12 -> "Voice enhancement"
-        17 -> "Dual Connection (Multipoint)"
-        19 -> "AI microphone"
-        24 -> "High-quality audio"
-        26 -> "Wind Noise Reduction"
-        27 -> "3D Spatial Audio"
-        29 -> "Dynamic Bass Boost"
-        38 -> "HD Audio / LDAC"
-        54 -> "Clear Bass"
+        6 -> "Game mode"
+        8 -> "Auto answer"
+        17 -> "Dual-device connection"
+        26 -> "Smart de-wind"
+        29 -> "Dynamic audio"
         else -> null
     }
 
@@ -126,27 +117,17 @@ object HeadsetSemantics {
         1 -> "Single Press"
         2 -> "Double Press"
         3 -> "Triple Press"
-        4 -> "Long Press (1s)"
-        5 -> "Long Press (3s)"
+        4 -> "Long Press"
         else -> "Action $action"
     }
 
     fun buttonFunctionLabel(function: Int): String = when (function) {
+        0 -> "None"
         1 -> "Play / Pause"
-        2 -> "Next Track"
-        3 -> "Previous Track"
         4 -> "Voice Assistant"
-        5 -> "Noise Mode"
-        6 -> "Switch Device"
-        7 -> "Game Mode"
-        8 -> "Volume Up"
-        9 -> "Volume Down"
-        10 -> "Ring / Find Phone"
-        11 -> "Camera Shutter"
-        26 -> "Face-to-Face Translation"
-        27 -> "AI Home"
-        31 -> "AI Assistant"
-        0 -> "Off"
+        5 -> "Previous Track"
+        6 -> "Next Track"
+        17 -> "Game Mode"
         else -> "Function $function"
     }
 }

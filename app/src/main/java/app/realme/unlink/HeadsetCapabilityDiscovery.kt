@@ -77,19 +77,19 @@ object HeadsetCapabilityDiscovery {
         val reason: String,
     )
 
+    val buttonMappingQuery = Query(
+        "Button mappings",
+        HeadsetProtocol.KEY_FUNCTION_COMMAND,
+        payload(14, 1, 3, 4, 5, 6, 11, 12, 8, 13, 17, 31, 26, 27, 0),
+    )
+
     /**
      * These requests are read-only in the reference implementation. Commands that initiate an
      * action, register events, enable debug mode, or write a setting are intentionally absent.
      */
     val readOnlyQueries: List<Query> = listOf(
         Query("Firmware/version", HeadsetProtocol.VERSION_COMMAND),
-        Query(
-            "Button mappings",
-            HeadsetProtocol.KEY_FUNCTION_COMMAND,
-            payload(
-                14, 1, 3, 4, 5, 6, 11, 12, 8, 13, 17, 31, 26, 27, 0,
-            ),
-        ),
+        buttonMappingQuery,
         Query("In-ear/wear status", HeadsetProtocol.WEAR_STATUS_COMMAND),
         Query(
             "Switch-feature status",

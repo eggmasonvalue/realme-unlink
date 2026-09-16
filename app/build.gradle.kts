@@ -11,26 +11,22 @@ android {
 
     defaultConfig {
         applicationId = "app.realme.unlink"
-        minSdk = 26
+        minSdk = 37
         targetSdk = 37
         versionCode = 1
         versionName = "1.0.0"
-        buildConfigField("boolean", "ENABLE_DIAGNOSTICS", "false")
     }
 
     buildTypes {
-        debug {
-            // Diagnostic probes stay in the binary for automation; never exposed in UI.
-            buildConfigField("boolean", "ENABLE_DIAGNOSTICS", "true")
-        }
         release {
-            buildConfigField("boolean", "ENABLE_DIAGNOSTICS", "false")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
         }
     }
 
     buildFeatures {
         compose = true
-        buildConfig = true
     }
 
     compileOptions {

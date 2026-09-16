@@ -16,6 +16,7 @@ data class HeadsetSnapshot(
     val multipoint: List<HeadsetCapabilityDiscovery.MultipointEntry>,
     val findModeActive: Boolean = false,
     val capabilities: HeadsetCapabilities,
+    val readFailures: Set<Int> = emptySet(),
 ) {
     data class BatteryLevel(
         val deviceType: Int,
@@ -45,6 +46,29 @@ data class HeadsetSnapshot(
         get() = eqProfiles.firstOrNull { it.id == 4 }
             ?: eqProfiles.firstOrNull { it.name.contains("Custom", ignoreCase = true) }
 
+    fun readFailed(command: Int): Boolean = command in readFailures
+
+    val canEditCustomEq: Boolean
+        get() = customEqProfile != null && currentEqId != null &&
+            capabilities.supportsCommand(HeadsetProtocol.SET_CUSTOM_EQ_COMMAND) &&
+            capabilities.supportsCommand(HeadsetProtocol.SET_EQ_STATUS_COMMAND) &&
+            !readFailed(HeadsetProtocol.ALL_EQ_COMMAND) &&
+            !readFailed(HeadsetProtocol.EQ_STATUS_COMMAND)
+
+    internal fun requireCompatibleCustomEq(
+        requested: HeadsetCapabilityDiscovery.EqProfile,
+    ): HeadsetCapabilityDiscovery.EqProfile {
+        check(canEditCustomEq) { "Custom EQ is not available" }
+        val baseline = checkNotNull(customEqProfile)
+        require(requested.id == baseline.id) { "Custom EQ profile ID changed" }
+        require(requested.frequencies == baseline.frequencies) { "Custom EQ frequencies changed" }
+        require(requested.dbValues.size == baseline.dbValues.size) { "Custom EQ band count changed" }
+        require(requested.dbValues.all { it in baseline.minValue..baseline.maxValue }) {
+            "Custom EQ value is outside the headset-provided range"
+        }
+        return baseline.copy(dbValues = requested.dbValues, selected = true)
+    }
+
     val currentEqLabel: String
         get() {
             val id = currentEqId ?: return "Unknown"
@@ -56,10 +80,10 @@ data class HeadsetSnapshot(
         }
 
     val gameModeEnabled: Boolean?
-        get() = switches.firstOrNull { it.id == 8 || 8 in it.aliases }?.enabled
+        get() = switches.firstOrNull { it.id == 6 }?.enabled
 
-    val volumeEnhancerEnabled: Boolean?
-        get() = switches.firstOrNull { it.id == 9 }?.enabled
+    val autoAnswerEnabled: Boolean?
+        get() = switches.firstOrNull { it.id == 8 }?.enabled
 
     val dualDeviceEnabled: Boolean?
         get() = switches.firstOrNull { it.id == 17 }?.enabled
@@ -69,7 +93,4 @@ data class HeadsetSnapshot(
 
     val dynamicBassEnabled: Boolean?
         get() = switches.firstOrNull { it.id == 29 }?.enabled
-
-    val hdAudioEnabled: Boolean?
-        get() = switches.firstOrNull { it.id == 38 }?.enabled
 }

@@ -7,7 +7,7 @@ import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 
 /**
- * Quick Settings entrypoint. Tap and long-press both open the app; no control logic on the tile.
+ * Quick Settings entrypoint. Tapping opens the app; no control logic runs on the tile.
  * The tile is available in the add-tile picker after install and is not auto-pinned.
  */
 class UnlinkTileService : TileService() {
@@ -26,10 +26,6 @@ class UnlinkTileService : TileService() {
     override fun onClick() {
         openApp()
     }
-
-    // Long-press uses the default TileService behavior of opening the app's settings/panel
-    // intent; with no launcher activity preferences, we also route explicitly via onClick path.
-    // On modern Android, long-press opens the app info unless we handle it — lock both to open.
 
     private fun openApp() {
         val intent = Intent(this, MainActivity::class.java).apply {
