@@ -13,8 +13,8 @@ android {
         applicationId = "app.realme.unlink"
         minSdk = 37
         targetSdk = 37
-        versionCode = 2
-        versionName = "1.0.1"
+        versionCode = 3
+        versionName = "1.0.2"
     }
 
     val releaseKeystore = rootProject.file("keystore/release.jks")

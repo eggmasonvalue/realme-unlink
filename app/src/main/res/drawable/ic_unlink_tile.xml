@@ -4,53 +4,33 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- Neckband collar band (contoured flexible loop) -->
+    <!-- Left capsule half (driver housing + soft silicone ear tip) -->
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M12,2.5 C7.2,2.5 4.5,5.8 4.5,11 L6.5,11 C6.5,7.2 8.5,4.5 12,4.5 C15.5,4.5 17.5,7.2 17.5,11 L19.5,11 C19.5,5.8 16.8,2.5 12,2.5 Z" />
+        android:pathData="M6,5.5 C4.34,5.5 3,6.84 3,8.5 C3,10.16 4.34,11.5 6,11.5 H11.3 V5.5 H6 Z" />
 
-    <!-- Left & Right control pods -->
+    <!-- Right capsule half (driver housing + soft silicone ear tip) -->
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M5.5,10.5 C4.95,10.5 4.5,10.95 4.5,11.5 V15 C4.5,15.55 4.95,16 5.5,16 C6.05,16 6.5,15.55 6.5,15 V11.5 C6.5,10.95 6.05,10.5 5.5,10.5 Z" />
-    <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M18.5,10.5 C17.95,10.5 17.5,10.95 17.5,11.5 V15 C17.5,15.55 17.95,16 18.5,16 C19.05,16 19.5,15.55 19.5,15 V11.5 C19.5,10.95 19.05,10.5 18.5,10.5 Z" />
+        android:pathData="M18,5.5 C19.66,5.5 21,6.84 21,8.5 C21,10.16 19.66,11.5 18,11.5 H12.7 V5.5 H18 Z" />
 
-    <!-- Left wire (smooth drape to stem base) -->
+    <!-- Left micro strain-relief collar (1dp subtle collar) -->
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M5.5,15.5 C5.5,19.5 7.5,22.2 10.4,22.2 L10.4,21.2 C8.0,21.2 6.5,18.8 6.5,15.5 Z" />
+        android:pathData="M7.7,11.5 L7.5,12.6 C7.5,12.9 7.8,13.1 8.2,13.1 H9.8 C10.2,13.1 10.5,12.9 10.5,12.6 L10.3,11.5 Z" />
 
-    <!-- Right wire (smooth drape to stem base) -->
+    <!-- Right micro strain-relief collar (1dp subtle collar) -->
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M18.5,15.5 C18.5,19.5 16.5,22.2 13.6,22.2 L13.6,21.2 C16.0,21.2 17.5,18.8 17.5,15.5 Z" />
+        android:pathData="M16.3,11.5 L16.5,12.6 C16.5,12.9 16.2,13.1 15.8,13.1 H14.2 C13.8,13.1 13.5,12.9 13.5,12.6 L13.7,11.5 Z" />
 
-    <!-- Earbuds magnetically snapped back-to-back at center -->
-    <!-- Left driver housing (flat outer back at x=11.8) -->
+    <!-- Left sweeping wire from collar base -->
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M11.8,16.8 C10.6,16.8 9.6,17.7 9.6,18.8 C9.6,19.9 10.6,20.8 11.8,20.8 Z" />
-    <!-- Right driver housing (flat outer back at x=12.2) -->
-    <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M12.2,16.8 C13.4,16.8 14.4,17.7 14.4,18.8 C14.4,19.9 13.4,20.8 12.2,20.8 Z" />
+        android:pathData="M4.5,21.5 C4.5,16.5 7,14.5 8,13.1 L9.8,13.1 C8.8,14.8 6.5,17 6.5,21.5 Z" />
 
-    <!-- Left ear tip (soft cone pointing outward/left) -->
+    <!-- Right sweeping wire from collar base -->
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M9.6,17.8 C8.8,18.2 8.0,18.8 8.0,18.8 C8.0,18.8 8.8,19.4 9.6,19.8 Z" />
-    <!-- Right ear tip (soft cone pointing outward/right) -->
-    <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M14.4,17.8 C15.2,18.2 16.0,18.8 16.0,18.8 C16.0,18.8 15.2,19.4 14.4,19.8 Z" />
-
-    <!-- Parallel vertical stems -->
-    <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M10.4,20.4 h1.1 v2.2 h-1.1 z" />
-    <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M12.5,20.4 h1.1 v2.2 h-1.1 z" />
+        android:pathData="M19.5,21.5 C19.5,16.5 17,14.5 16,13.1 L14.2,13.1 C15.2,14.8 17.5,17 17.5,21.5 Z" />
 </vector>
