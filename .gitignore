@@ -18,5 +18,10 @@ local.properties
 *.aab
 captures/
 
+# Keystores
+*.jks
+*.keystore
+keystore/
+
 # Local reverse-engineering artifacts
 /tmp/

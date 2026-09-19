@@ -33,21 +33,25 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
-import androidx.compose.material.icons.outlined.BatteryChargingFull
-import androidx.compose.material.icons.outlined.BatteryFull
 import androidx.compose.material.icons.outlined.Bluetooth
 import androidx.compose.material.icons.outlined.BluetoothDisabled
+import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.Headphones
 import androidx.compose.material.icons.outlined.Hearing
+import androidx.compose.material.icons.outlined.HearingDisabled
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.MusicNote
+import androidx.compose.material.icons.outlined.NoiseAware
+import androidx.compose.material.icons.outlined.NoiseControlOff
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Sensors
 import androidx.compose.material.icons.outlined.SpeakerPhone
+import androidx.compose.material.icons.outlined.SurroundSound
 import androidx.compose.material.icons.outlined.TouchApp
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.BottomSheetDefaults
@@ -59,7 +63,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -111,14 +114,14 @@ private enum class SheetKind {
     None,
     Noise,
     Equalizer,
-    DynamicAudio,
+    DynamicBass,
     ButtonControls,
 }
 
 private enum class NoiseMode(val value: Int, val label: String) {
     Anc(8, "ANC"),
+    Ambient(2, "Transparency"),
     Off(1, "Off"),
-    Ambient(2, "Ambient"),
 }
 
 private data class ButtonChoice(
@@ -152,6 +155,8 @@ fun UnlinkApp(
     onSwitch: (Int, Boolean) -> Unit,
     onButtons: (HeadsetCapabilityDiscovery.KeyMapping) -> Unit,
     onFindMode: (Boolean) -> Unit,
+    onVolumeEnhancer: (Boolean) -> Unit = {},
+    onNoiseCycle: (Int) -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     var sheet by remember { mutableStateOf(SheetKind.None) }
@@ -175,7 +180,7 @@ fun UnlinkApp(
             SheetKind.None -> true
             SheetKind.Noise -> connected?.noise != null
             SheetKind.Equalizer -> connected?.hasEqualizer == true
-            SheetKind.DynamicAudio -> connected?.hasDynamicAudio == true
+            SheetKind.DynamicBass -> connected?.hasDynamicBass == true
             SheetKind.ButtonControls -> connected?.buttonMappings?.isNotEmpty() == true
         }
         if (!canKeepSheetOpen) {
@@ -257,9 +262,10 @@ fun UnlinkApp(
                     onSwitch = onSwitch,
                     onButtons = onButtons,
                     onFindMode = onFindMode,
+                    onVolumeEnhancer = onVolumeEnhancer,
                     onOpenNoise = { sheet = SheetKind.Noise },
                     onOpenEqualizer = { sheet = SheetKind.Equalizer },
-                    onOpenDynamicAudio = { sheet = SheetKind.DynamicAudio },
+                    onOpenDynamicBass = { sheet = SheetKind.DynamicBass },
                     onOpenButtons = {
                         selectedButtonMapping = null
                         sheet = SheetKind.ButtonControls
@@ -292,6 +298,7 @@ fun UnlinkApp(
                     enabled = !busy,
                     onNoiseValue = onNoiseValue,
                     onToggle = onSwitch,
+                    onNoiseCycle = onNoiseCycle,
                 )
 
                 SheetKind.Equalizer -> EqualizerSheet(
@@ -301,7 +308,7 @@ fun UnlinkApp(
                     onApplyCustomEq = onApplyCustomEq,
                 )
 
-                SheetKind.DynamicAudio -> DynamicAudioSheet(
+                SheetKind.DynamicBass -> DynamicBassSheet(
                     snapshot = connected,
                     enabled = !busy,
                     onBassBand = onBassBand,
@@ -326,7 +333,7 @@ fun UnlinkApp(
 private val HeadsetSnapshot.hasEqualizer: Boolean
     get() = currentEqId != null || eqProfiles.isNotEmpty()
 
-private val HeadsetSnapshot.hasDynamicAudio: Boolean
+private val HeadsetSnapshot.hasDynamicBass: Boolean
     get() = switches.any { it.id == 29 } ||
         (bassBands.isNotEmpty() &&
             capabilities.supportsCommand(HeadsetProtocol.SET_BASS_ENGINE_COMMAND) &&
@@ -342,7 +349,7 @@ private fun DeviceHeader(snapshot: HeadsetSnapshot) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 8.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Surface(
@@ -383,30 +390,29 @@ private fun DeviceHeader(snapshot: HeadsetSnapshot) {
             }
 
             snapshot.primaryBatteryPercent?.let { percentage ->
-                Column(horizontalAlignment = Alignment.End) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            if (snapshot.anyCharging) {
-                                Icons.Outlined.BatteryChargingFull
-                            } else {
-                                Icons.Outlined.BatteryFull
-                            },
-                            contentDescription = "Battery",
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Spacer(Modifier.width(4.dp))
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        if (snapshot.anyCharging) {
+                            Icon(
+                                Icons.Outlined.Bolt,
+                                contentDescription = "Charging",
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                            )
+                            Spacer(Modifier.width(4.dp))
+                        }
                         Text(
                             "$percentage%",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                    }
-                    if (snapshot.anyCharging) {
-                        Text(
-                            "Charging",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer,
                         )
                     }
                 }
@@ -507,9 +513,10 @@ private fun ConnectedDashboard(
     onSwitch: (Int, Boolean) -> Unit,
     onButtons: (HeadsetCapabilityDiscovery.KeyMapping) -> Unit,
     onFindMode: (Boolean) -> Unit,
+    onVolumeEnhancer: (Boolean) -> Unit,
     onOpenNoise: () -> Unit,
     onOpenEqualizer: () -> Unit,
-    onOpenDynamicAudio: () -> Unit,
+    onOpenDynamicBass: () -> Unit,
     onOpenButtons: () -> Unit,
 ) {
     val gameSwitch = snapshot.switches.firstOrNull { it.id == 6 || it.id == 8 }
@@ -541,18 +548,28 @@ private fun ConnectedDashboard(
             item { PartialDataNotice() }
         }
 
+        snapshot.noise?.let { noise ->
+            item {
+                NoiseControlCard(
+                    noiseValue = noise.value,
+                    enabled = !busy,
+                    onSelect = onNoiseValue,
+                    onAdjust = onOpenNoise,
+                )
+            }
+        }
+
         item {
             SoundSection(
                 snapshot = snapshot,
                 busy = busy,
                 dynamicBass = dynamicBass,
                 writableBassBands = writableBassBands,
-                onNoiseValue = onNoiseValue,
                 onEqId = onEqId,
                 onSwitch = onSwitch,
-                onOpenNoise = onOpenNoise,
+                onVolumeEnhancer = onVolumeEnhancer,
                 onOpenEqualizer = onOpenEqualizer,
-                onOpenDynamicAudio = onOpenDynamicAudio,
+                onOpenDynamicBass = onOpenDynamicBass,
             )
         }
 
@@ -605,78 +622,7 @@ private fun PartialDataNotice() {
 }
 
 @Composable
-private fun SoundSection(
-    snapshot: HeadsetSnapshot,
-    busy: Boolean,
-    dynamicBass: SwitchCatalog.LogicalSwitch?,
-    writableBassBands: List<HeadsetCapabilityDiscovery.BassEngineValue>,
-    onNoiseValue: (Int) -> Unit,
-    onEqId: (Int) -> Unit,
-    onSwitch: (Int, Boolean) -> Unit,
-    onOpenNoise: () -> Unit,
-    onOpenEqualizer: () -> Unit,
-    onOpenDynamicAudio: () -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .animateContentSize(),
-    ) {
-        Text(
-            "Sound",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier
-                .padding(start = 4.dp, top = 4.dp, bottom = 8.dp)
-                .semantics { heading() },
-        )
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            ),
-        ) {
-            Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                snapshot.noise?.let { noise ->
-                    NoiseInlineControl(
-                        noiseValue = noise.value,
-                        enabled = !busy,
-                        onSelect = onNoiseValue,
-                        onAdjust = onOpenNoise,
-                    )
-                }
-
-                if (snapshot.hasEqualizer) {
-                    RowDivider()
-                    SummaryRow(
-                        icon = Icons.Outlined.Tune,
-                        title = "Equalizer",
-                        summary = snapshot.currentEqLabel,
-                        enabled = !busy && snapshot.currentEqId != null &&
-                            !snapshot.readFailed(HeadsetProtocol.EQ_STATUS_COMMAND),
-                        onClick = onOpenEqualizer,
-                    )
-                }
-
-                if (snapshot.hasDynamicAudio) {
-                    RowDivider()
-                    SummaryRow(
-                        icon = Icons.AutoMirrored.Outlined.VolumeUp,
-                        title = "Dynamic audio",
-                        summary = dynamicAudioSummary(dynamicBass, writableBassBands),
-                        enabled = !busy,
-                        onClick = onOpenDynamicAudio,
-                    )
-                }
-
-            }
-        }
-    }
-}
-
-@Composable
-private fun NoiseInlineControl(
+private fun NoiseControlCard(
     noiseValue: Int,
     enabled: Boolean,
     onSelect: (Int) -> Unit,
@@ -689,70 +635,97 @@ private fun NoiseInlineControl(
         else -> null
     }
 
-    Column(Modifier.padding(vertical = 8.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
         ) {
-            Column(Modifier.weight(1f)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    Icons.Outlined.Hearing,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                    tint = MaterialTheme.colorScheme.secondary,
+                )
+                Spacer(Modifier.width(16.dp))
                 Text(
                     "Noise control",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                )
-                Text(
-                    selectedMode?.label ?: "Current mode unavailable",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            TextButton(
-                onClick = onAdjust,
-                enabled = enabled,
-                modifier = Modifier.heightIn(min = 48.dp),
-            ) {
-                Icon(Icons.Outlined.Tune, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(4.dp))
-                Text("Adjust")
-            }
-        }
-        Spacer(Modifier.height(4.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            NoiseMode.values().forEach { mode ->
-                val selected = selectedMode == mode
-                ModeButton(
-                    label = mode.label,
-                    selected = selected,
-                    enabled = enabled,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
-                    onClick = {
-                        val target = when (mode) {
-                            NoiseMode.Anc -> if (noiseValue in ANC_VALUES) noiseValue else NoiseMode.Anc.value
-                            NoiseMode.Off -> NoiseMode.Off.value
-                            NoiseMode.Ambient -> NoiseMode.Ambient.value
-                        }
-                        if (target != noiseValue) onSelect(target)
-                    },
                 )
+                TextButton(
+                    onClick = onAdjust,
+                    enabled = enabled,
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                    modifier = Modifier.height(32.dp),
+                ) {
+                    Icon(
+                        Icons.Outlined.Tune,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text("Adjust", style = MaterialTheme.typography.labelMedium)
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                NoiseMode.values().forEach { mode ->
+                    val selected = selectedMode == mode
+                    NoiseModeTile(
+                        mode = mode,
+                        selected = selected,
+                        enabled = enabled,
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            val target = when (mode) {
+                                NoiseMode.Anc -> if (noiseValue in ANC_VALUES) noiseValue else NoiseMode.Anc.value
+                                NoiseMode.Ambient -> NoiseMode.Ambient.value
+                                NoiseMode.Off -> NoiseMode.Off.value
+                            }
+                            if (target != noiseValue) onSelect(target)
+                        },
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun ModeButton(
-    label: String,
+private fun NoiseModeTile(
+    mode: NoiseMode,
     selected: Boolean,
     enabled: Boolean,
     modifier: Modifier,
     onClick: () -> Unit,
 ) {
+    val icon = when (mode) {
+        NoiseMode.Anc -> Icons.Outlined.Hearing
+        NoiseMode.Ambient -> Icons.Outlined.NoiseAware
+        NoiseMode.Off -> Icons.Outlined.NoiseControlOff
+    }
+
     Surface(
         modifier = modifier
-            .heightIn(min = 48.dp)
+            .heightIn(min = 64.dp)
             .semantics {
                 role = Role.Button
                 if (selected) stateDescription = "Selected"
@@ -768,24 +741,133 @@ private fun ModeButton(
         contentColor = if (selected) {
             MaterialTheme.colorScheme.onPrimaryContainer
         } else {
-            MaterialTheme.colorScheme.onSurface
+            MaterialTheme.colorScheme.onSurfaceVariant
         },
     ) {
-        Box(
-            Modifier
+        Column(
+            modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 48.dp),
-            contentAlignment = Alignment.Center,
+                .padding(vertical = 10.dp, horizontal = 4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
         ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                modifier = Modifier.size(22.dp),
+                tint = if (selected) {
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+            )
+            Spacer(Modifier.height(6.dp))
             Text(
-                label,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                mode.label,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                 textAlign = TextAlign.Center,
+                maxLines = 1,
             )
         }
     }
 }
+
+@Composable
+private fun SoundSection(
+    snapshot: HeadsetSnapshot,
+    busy: Boolean,
+    dynamicBass: SwitchCatalog.LogicalSwitch?,
+    writableBassBands: List<HeadsetCapabilityDiscovery.BassEngineValue>,
+    onEqId: (Int) -> Unit,
+    onSwitch: (Int, Boolean) -> Unit,
+    onVolumeEnhancer: (Boolean) -> Unit,
+    onOpenEqualizer: () -> Unit,
+    onOpenDynamicBass: () -> Unit,
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ),
+    ) {
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                var needsDivider = false
+
+                if (snapshot.hasEqualizer) {
+                    needsDivider = true
+                    val eqSummary = when {
+                        snapshot.currentEqId == null -> "Unknown"
+                        snapshot.currentEqId in 0..3 -> snapshot.currentEqLabel
+                        else -> {
+                            val custom = snapshot.customEqProfile
+                            val match = custom?.let { EqSuggestions.matchingSuggestion(it)?.name }
+                            if (match != null) "Custom ($match)" else "Custom"
+                        }
+                    }
+                    SummaryRow(
+                        icon = Icons.Outlined.Tune,
+                        title = "Equalizer",
+                        summary = eqSummary,
+                        enabled = !busy && snapshot.currentEqId != null &&
+                            !snapshot.readFailed(HeadsetProtocol.EQ_STATUS_COMMAND),
+                        onClick = onOpenEqualizer,
+                    )
+                }
+
+                if (snapshot.hasDynamicBass) {
+                    if (needsDivider) RowDivider()
+                    needsDivider = true
+                    SummaryRow(
+                        icon = Icons.AutoMirrored.Outlined.VolumeUp,
+                        title = "Dynamic bass",
+                        summary = dynamicBassSummary(dynamicBass, writableBassBands),
+                        enabled = !busy,
+                        onClick = onOpenDynamicBass,
+                    )
+                }
+
+                val spatialSwitch = snapshot.switches.firstOrNull { it.id == 27 }
+                spatialSwitch?.let { sw ->
+                    if (needsDivider) RowDivider()
+                    needsDivider = true
+                    SettingRow(
+                        icon = Icons.Outlined.SurroundSound,
+                        title = "Spatial audio",
+                        summary = if (sw.enabled) "On" else "Off",
+                        enabled = !busy,
+                        onClick = { onSwitch(sw.id, !sw.enabled) },
+                    ) {
+                        Switch(
+                            checked = sw.enabled,
+                            onCheckedChange = { onSwitch(sw.id, it) },
+                            enabled = !busy,
+                        )
+                    }
+                }
+
+                snapshot.highVolumeEnabled?.let { enabled ->
+                    if (needsDivider) RowDivider()
+                    SettingRow(
+                        icon = Icons.Outlined.GraphicEq,
+                        title = "Volume enhancer",
+                        summary = if (enabled) "On" else "Off",
+                        enabled = !busy && snapshot.capabilities.supportsCommand(HeadsetProtocol.SET_HIGH_VOLUME_COMMAND),
+                        onClick = { onVolumeEnhancer(!enabled) },
+                    ) {
+                        Switch(
+                            checked = enabled,
+                            onCheckedChange = onVolumeEnhancer,
+                            enabled = !busy && snapshot.capabilities.supportsCommand(HeadsetProtocol.SET_HIGH_VOLUME_COMMAND),
+                        )
+                    }
+                }
+            }
+        }
+    }
 
 @Composable
 private fun SummaryRow(
@@ -803,26 +885,13 @@ private fun SummaryRow(
             .semantics { if (!enabled) stateDescription = "Unavailable" },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        val secondary = title == "Equalizer"
-        Surface(
-            modifier = Modifier.size(36.dp),
-            shape = RoundedCornerShape(12.dp),
-            color = if (secondary) {
-                MaterialTheme.colorScheme.secondaryContainer
-            } else {
-                MaterialTheme.colorScheme.tertiaryContainer
-            },
-            contentColor = if (secondary) {
-                MaterialTheme.colorScheme.onSecondaryContainer
-            } else {
-                MaterialTheme.colorScheme.onTertiaryContainer
-            },
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
-            }
-        }
-        Spacer(Modifier.width(12.dp))
+        Icon(
+            icon,
+            contentDescription = null,
+            modifier = Modifier.size(24.dp),
+            tint = MaterialTheme.colorScheme.secondary,
+        )
+        Spacer(Modifier.width(16.dp))
         Column(Modifier.weight(1f)) {
             Text(
                 title,
@@ -839,41 +908,6 @@ private fun SummaryRow(
             Icons.Outlined.ChevronRight,
             contentDescription = "Open $title",
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-@Composable
-private fun InlineSwitchRow(
-    icon: ImageVector,
-    title: String,
-    checked: Boolean,
-    enabled: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 64.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            modifier = Modifier.size(22.dp),
-            tint = MaterialTheme.colorScheme.primary,
-        )
-        Spacer(Modifier.width(14.dp))
-        Text(
-            title,
-            modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Medium,
-        )
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            enabled = enabled,
         )
     }
 }
@@ -1018,27 +1052,13 @@ private fun SettingRow(
             .semantics { if (!enabled) stateDescription = "Unavailable" },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        val tertiary = title == "Dual-device" || title == "Find neckband"
-        val secondary = title == "Game mode" || title == "Auto answer"
-        Surface(
-            modifier = Modifier.size(36.dp),
-            shape = RoundedCornerShape(12.dp),
-            color = when {
-                tertiary -> MaterialTheme.colorScheme.tertiaryContainer
-                secondary -> MaterialTheme.colorScheme.secondaryContainer
-                else -> MaterialTheme.colorScheme.primaryContainer
-            },
-            contentColor = when {
-                tertiary -> MaterialTheme.colorScheme.onTertiaryContainer
-                secondary -> MaterialTheme.colorScheme.onSecondaryContainer
-                else -> MaterialTheme.colorScheme.onPrimaryContainer
-            },
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
-            }
-        }
-        Spacer(Modifier.width(12.dp))
+        Icon(
+            icon,
+            contentDescription = null,
+            modifier = Modifier.size(24.dp),
+            tint = MaterialTheme.colorScheme.secondary,
+        )
+        Spacer(Modifier.width(16.dp))
         Column(Modifier.weight(1f)) {
             Text(
                 title,
@@ -1064,7 +1084,7 @@ private fun MultipointDetails(
     Column(
         Modifier
             .fillMaxWidth()
-            .padding(start = 36.dp, bottom = 10.dp),
+            .padding(start = 40.dp, bottom = 10.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         when {
@@ -1108,18 +1128,19 @@ private fun MultipointDetails(
 }
 
 private fun buttonSummary(mappings: List<HeadsetCapabilityDiscovery.KeyMapping>): String {
-    val reportedSlots = mappings
-        .distinctBy { Triple(it.deviceType, it.button, it.action) }
+    val editableSlots = mappings
+        .filter { it.button == 1 && it.action in 1..4 }
+        .distinctBy { it.action }
         .size
-    return "$reportedSlots assignments"
+    return if (editableSlots > 0) "$editableSlots gestures" else "Available"
 }
 
-private fun dynamicAudioSummary(
+private fun dynamicBassSummary(
     dynamicBass: SwitchCatalog.LogicalSwitch?,
     bands: List<HeadsetCapabilityDiscovery.BassEngineValue>,
 ): String = when {
     dynamicBass != null -> if (dynamicBass.enabled) "Dynamic bass on" else "Dynamic bass off"
-    bands.isNotEmpty() -> "${bands.size}-band adjustment"
+    bands.isNotEmpty() -> "${bands.size}-band tuning"
     else -> "Available"
 }
 
@@ -1128,9 +1149,9 @@ private fun RowDivider() {
     Box(
         Modifier
             .fillMaxWidth()
-            .padding(start = 36.dp)
+            .padding(start = 40.dp)
             .height(1.dp)
-            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
     )
 }
 
@@ -1140,11 +1161,20 @@ private fun NoiseAdjustmentSheet(
     enabled: Boolean,
     onNoiseValue: (Int) -> Unit,
     onToggle: (Int, Boolean) -> Unit,
+    onNoiseCycle: (Int) -> Unit = {},
 ) {
     val noiseValue = snapshot.noise?.value ?: return
     val windNoise = snapshot.switches.firstOrNull { it.id == 26 }
+    val cycleValue = snapshot.noiseCycle?.value
     SheetColumn {
-        SheetTitle(title = "Noise control", subtitle = "ANC level")
+        SheetTitle(title = "Noise control", subtitle = "ANC tuning and button cycling")
+
+        Text(
+            "ANC level",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
+        )
         listOf(
             32 to "Smart",
             8 to "Max",
@@ -1158,15 +1188,114 @@ private fun NoiseAdjustmentSheet(
                 onClick = { if (noiseValue != value) onNoiseValue(value) },
             )
         }
+
         windNoise?.let { sw ->
             Spacer(Modifier.height(8.dp))
             RowDivider()
-            InlineSwitchRow(
+            Spacer(Modifier.height(8.dp))
+            SettingRow(
                 icon = Icons.Outlined.Hearing,
                 title = "Smart de-wind",
-                checked = sw.enabled,
+                summary = if (sw.enabled) "On" else "Off",
                 enabled = enabled,
-                onCheckedChange = { onToggle(sw.id, it) },
+                onClick = { onToggle(sw.id, !sw.enabled) },
+            ) {
+                Switch(
+                    checked = sw.enabled,
+                    onCheckedChange = { onToggle(sw.id, it) },
+                    enabled = enabled,
+                )
+            }
+        }
+
+        if (cycleValue != null) {
+            Spacer(Modifier.height(8.dp))
+            RowDivider()
+            Spacer(Modifier.height(12.dp))
+            Text(
+                "Button cycling",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                "Modes cycled by pressing the physical ANC button",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 2.dp, bottom = 12.dp),
+            )
+
+            val hasAnc = cycleValue in setOf(3, 9, 11)
+            val hasTransparency = cycleValue in setOf(9, 10, 11)
+            val hasOff = cycleValue in setOf(3, 10, 11)
+            val totalActive = (if (hasAnc) 1 else 0) + (if (hasTransparency) 1 else 0) + (if (hasOff) 1 else 0)
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                FilterChip(
+                    selected = hasAnc,
+                    onClick = {
+                        if (hasAnc && totalActive > 2) {
+                            onNoiseCycle(10)
+                        } else if (!hasAnc) {
+                            onNoiseCycle(11)
+                        }
+                    },
+                    enabled = enabled,
+                    label = { Text("ANC") },
+                    leadingIcon = if (hasAnc) {
+                        { Icon(Icons.Outlined.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                    } else null,
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    ),
+                )
+                FilterChip(
+                    selected = hasTransparency,
+                    onClick = {
+                        if (hasTransparency && totalActive > 2) {
+                            onNoiseCycle(3)
+                        } else if (!hasTransparency) {
+                            onNoiseCycle(11)
+                        }
+                    },
+                    enabled = enabled,
+                    label = { Text("Transparency") },
+                    leadingIcon = if (hasTransparency) {
+                        { Icon(Icons.Outlined.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                    } else null,
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    ),
+                )
+                FilterChip(
+                    selected = hasOff,
+                    onClick = {
+                        if (hasOff && totalActive > 2) {
+                            onNoiseCycle(9)
+                        } else if (!hasOff) {
+                            onNoiseCycle(11)
+                        }
+                    },
+                    enabled = enabled,
+                    label = { Text("Off") },
+                    leadingIcon = if (hasOff) {
+                        { Icon(Icons.Outlined.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                    } else null,
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    ),
+                )
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                if (totalActive <= 2) "At least 2 modes must be selected" else "Cycles between selected modes",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -1263,6 +1392,7 @@ private fun SheetTitle(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun EqualizerSheet(
     snapshot: HeadsetSnapshot,
@@ -1270,82 +1400,145 @@ private fun EqualizerSheet(
     onSelect: (Int) -> Unit,
     onApplyCustomEq: (HeadsetCapabilityDiscovery.EqProfile) -> Unit,
 ) {
-    var customEditor by remember { mutableStateOf(false) }
     val custom = snapshot.customEqProfile
 
-    if (customEditor && snapshot.canEditCustomEq && custom != null) {
-        CustomEqEditor(
-            profile = custom,
-            enabled = enabled,
-            onApply = onApplyCustomEq,
-            onBack = { customEditor = false },
-        )
-        return
-    }
-
     SheetColumn {
-        SheetTitle(title = "Equalizer", subtitle = "Presets")
-        val profiles = buildList {
-            if (snapshot.currentEqId == 0 || snapshot.eqProfiles.none { it.id == 0 }) {
-                add(
-                    HeadsetCapabilityDiscovery.EqProfile(
-                        selected = snapshot.currentEqId == 0,
-                        minValue = 0,
-                        maxValue = 0,
-                        id = 0,
-                        name = "Original",
-                        frequencies = emptyList(),
-                        dbValues = emptyList(),
-                    ),
-                )
-            }
-            addAll(snapshot.eqProfiles)
-        }.distinctBy { it.id }
+        SheetTitle(title = "Equalizer", subtitle = "Sound profiles & 6-band custom")
 
-        profiles.forEach { profile ->
-            val label = eqProfileLabel(profile)
+        Text(
+            "Sound profiles",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
+        )
+        val officialPresets = listOf(
+            0 to "Nature Balance",
+            1 to "Bass Boost",
+            2 to "Clear Vocals",
+            3 to "Clear Bass",
+        )
+        officialPresets.forEach { (id, label) ->
             SelectionRow(
                 title = label,
-                selected = snapshot.currentEqId == profile.id,
+                selected = snapshot.currentEqId == id,
                 enabled = enabled && snapshot.currentEqId != null &&
                     !snapshot.readFailed(HeadsetProtocol.EQ_STATUS_COMMAND),
-                onClick = { onSelect(profile.id) },
+                onClick = { onSelect(id) },
             )
         }
 
         if (snapshot.canEditCustomEq && custom != null) {
+            val isCustomSelected = snapshot.currentEqId == custom.id || snapshot.currentEqId == 4
+            val matchingSuggestion = EqSuggestions.matchingSuggestion(custom)?.name
+            val customSummary = matchingSuggestion ?: "${custom.frequencies.size}-band custom"
+            SelectionRow(
+                title = "Custom",
+                summary = customSummary,
+                selected = isCustomSelected,
+                enabled = enabled && !snapshot.readFailed(HeadsetProtocol.EQ_STATUS_COMMAND),
+                onClick = { onSelect(custom.id) },
+            )
+
             Spacer(Modifier.height(8.dp))
-            FilledTonalButton(
-                onClick = { customEditor = true },
+            RowDivider()
+            Spacer(Modifier.height(12.dp))
+
+            Text(
+                "Custom 6-band EQ",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                "Tap a preset curve to preview dB values, or tune individual bands",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 2.dp, bottom = 12.dp),
+            )
+
+            var bands by remember(custom.id, custom.dbValues) {
+                mutableStateOf(custom.dbValues)
+            }
+            var selectedPresetId by remember(custom.id, custom.dbValues) {
+                mutableStateOf(EqSuggestions.matchingSuggestion(custom)?.id)
+            }
+
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                EqSuggestions.suggestions.forEach { suggestion ->
+                    FilterChip(
+                        selected = selectedPresetId == suggestion.id,
+                        onClick = {
+                            selectedPresetId = suggestion.id
+                            bands = EqSuggestions.apply(custom, suggestion).dbValues
+                        },
+                        enabled = enabled,
+                        label = { Text(suggestion.name) },
+                        modifier = Modifier.heightIn(min = 40.dp),
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        ),
+                    )
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+
+            custom.frequencies.forEachIndexed { index, frequency ->
+                val value = bands.getOrElse(index) { 0 }
+                val dbText = if (value > 0) "+$value dB" else "$value dB"
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        formatFreq(frequency),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Text(
+                        dbText,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+                Slider(
+                    value = value.toFloat(),
+                    onValueChange = { newValue ->
+                        selectedPresetId = null
+                        val updated = bands.toMutableList()
+                        if (index < updated.size) {
+                            updated[index] = newValue.toInt()
+                            bands = updated
+                        }
+                    },
+                    valueRange = custom.minValue.toFloat()..custom.maxValue.toFloat(),
+                    steps = (custom.maxValue - custom.minValue - 1).coerceAtLeast(0),
+                    enabled = enabled,
+                )
+            }
+
+            Spacer(Modifier.height(4.dp))
+            Button(
+                onClick = {
+                    onApplyCustomEq(custom.copy(dbValues = bands, selected = true))
+                },
                 enabled = enabled,
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 48.dp),
             ) {
-                Icon(Icons.Outlined.Tune, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Edit custom EQ (${custom.frequencies.size}-band)")
+                Text("Apply custom EQ")
             }
         }
     }
 }
 
-private fun eqProfileLabel(profile: HeadsetCapabilityDiscovery.EqProfile): String {
-    if (profile.id == 0) return "Original"
-    if (profile.name.isNotBlank()) {
-        return if (profile.name.startsWith("Custom", ignoreCase = true)) "Custom" else profile.name
-    }
-    return when (profile.id) {
-        1 -> "Serenade"
-        2 -> "Deep Bass"
-        3 -> "Clear Bass"
-        4 -> "Custom"
-        else -> "Profile ${profile.id}"
-    }
-}
-
 @Composable
-private fun DynamicAudioSheet(
+private fun DynamicBassSheet(
     snapshot: HeadsetSnapshot,
     enabled: Boolean,
     onBassBand: (HeadsetCapabilityDiscovery.BassEngineValue) -> Unit,
@@ -1358,16 +1551,43 @@ private fun DynamicAudioSheet(
     }.orEmpty()
 
     SheetColumn {
-        SheetTitle(title = "Dynamic audio")
+        SheetTitle(title = "Dynamic bass", subtitle = "Low-frequency enhancement")
+
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp),
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        ) {
+            Column(Modifier.padding(14.dp)) {
+                Text(
+                    "At lower volumes, bass naturally fades from human hearing, making music feel thin and flat. Dynamic bass automatically boosts low frequencies at quiet levels so your music stays rich and full, then balances them as volume rises to prevent distortion.\n\nUse the sliders to tune the baseline strength for each range to your taste.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
         dynamicBass?.let { sw ->
-            InlineSwitchRow(
+            SettingRow(
                 icon = Icons.AutoMirrored.Outlined.VolumeUp,
                 title = "Dynamic bass",
-                checked = sw.enabled,
+                summary = if (sw.enabled) "On" else "Off",
                 enabled = enabled,
-                onCheckedChange = { onToggle(sw.id, it) },
-            )
-            if (bands.isNotEmpty()) RowDivider()
+                onClick = { onToggle(sw.id, !sw.enabled) },
+            ) {
+                Switch(
+                    checked = sw.enabled,
+                    onCheckedChange = { onToggle(sw.id, it) },
+                    enabled = enabled,
+                )
+            }
+            if (bands.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                RowDivider()
+                Spacer(Modifier.height(8.dp))
+            }
         }
         bands.forEach { band ->
             BassBandSlider(
@@ -1388,7 +1608,12 @@ private fun BassBandSlider(
     var pendingValue by remember(band.type, band.currentValue) {
         mutableIntStateOf(band.currentValue)
     }
-    val label = band.type?.let(HeadsetSemantics::bassBandLabel) ?: "Bass"
+    val (label, description) = when (band.type) {
+        1 -> "Low freq" to "Rumble & sub-bass"
+        2 -> "Med freq" to "Punch & kick drums"
+        3 -> "High freq" to "Bass guitar & lower warmth"
+        else -> (band.type?.let(HeadsetSemantics::bassBandLabel) ?: "Bass") to null
+    }
     val dbText = if (pendingValue > 0) "+$pendingValue dB" else "$pendingValue dB"
 
     Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
@@ -1397,7 +1622,16 @@ private fun BassBandSlider(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+            Column(Modifier.weight(1f).padding(end = 8.dp)) {
+                Text(label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                if (description != null) {
+                    Text(
+                        description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
             Text(
                 dbText,
                 style = MaterialTheme.typography.labelLarge,
@@ -1417,100 +1651,6 @@ private fun BassBandSlider(
             steps = (band.maxValue - band.minValue - 1).coerceAtLeast(0),
             enabled = enabled,
         )
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun CustomEqEditor(
-    profile: HeadsetCapabilityDiscovery.EqProfile,
-    enabled: Boolean,
-    onApply: (HeadsetCapabilityDiscovery.EqProfile) -> Unit,
-    onBack: () -> Unit,
-) {
-    var bands by remember(profile.id, profile.dbValues) {
-        mutableStateOf(profile.dbValues)
-    }
-    var selectedPresetId by remember(profile.id, profile.dbValues) {
-        mutableStateOf(EqSuggestions.matchingSuggestion(profile)?.id)
-    }
-
-    SheetColumn {
-        SheetTitle(
-            title = "Custom EQ",
-            subtitle = "${profile.frequencies.size}-band",
-            onBack = onBack,
-        )
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            EqSuggestions.suggestions.forEach { suggestion ->
-                FilterChip(
-                    selected = selectedPresetId == suggestion.id,
-                    onClick = {
-                        selectedPresetId = suggestion.id
-                        bands = EqSuggestions.apply(profile, suggestion).dbValues
-                    },
-                    enabled = enabled,
-                    label = { Text(suggestion.name) },
-                    modifier = Modifier.heightIn(min = 48.dp),
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    ),
-                )
-            }
-        }
-        Spacer(Modifier.height(12.dp))
-
-        profile.frequencies.forEachIndexed { index, frequency ->
-            val value = bands.getOrElse(index) { 0 }
-            val dbText = if (value > 0) "+$value dB" else "$value dB"
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    formatFreq(frequency),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                )
-                Text(
-                    dbText,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-            Slider(
-                value = value.toFloat(),
-                onValueChange = { newValue ->
-                    selectedPresetId = null
-                    val updated = bands.toMutableList()
-                    if (index < updated.size) {
-                        updated[index] = newValue.toInt()
-                        bands = updated
-                    }
-                },
-                valueRange = profile.minValue.toFloat()..profile.maxValue.toFloat(),
-                steps = (profile.maxValue - profile.minValue - 1).coerceAtLeast(0),
-                enabled = enabled,
-            )
-        }
-
-        Button(
-            onClick = {
-                onApply(profile.copy(dbValues = bands, selected = true))
-            },
-            enabled = enabled,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 48.dp),
-        ) {
-            Text("Apply custom EQ")
-        }
     }
 }
 
@@ -1544,25 +1684,24 @@ private fun ButtonControlsSheet(
         return
     }
 
-    // Keep every reported physical slot visible. Only confirmed MFB slots are editable;
-    // volume/ANC slots remain read-only rather than becoming speculative writes.
+    // Only confirmed MFB slots are customizable; ANC cycling has its own controls in Noise adjustment.
     val mappings = snapshot.buttonMappings
-        .distinctBy { Triple(it.deviceType, it.button, it.action) }
-        .sortedWith(compareBy({ it.button }, { it.action }, { it.deviceType }))
+        .filter { it.button == 1 && it.action in 1..4 }
+        .distinctBy { it.action }
+        .sortedBy { it.action }
 
     SheetColumn {
         SheetTitle(title = "Button controls", subtitle = "Multifunction button")
         Text(
-            "Choose an assignment to change it.",
+            "Choose a gesture to change its function.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 8.dp),
         )
         mappings.forEach { mapping ->
-            val editable = mapping.button == 1 && mapping.action in 1..4
             ButtonAssignmentRow(
                 mapping = mapping,
-                enabled = enabled && editable,
+                enabled = enabled,
                 onClick = { onSelectMapping(mapping) },
             )
         }
@@ -1590,14 +1729,14 @@ private fun ButtonAssignmentRow(
                 fontWeight = FontWeight.Medium,
             )
             Text(
-                if (enabled) buttonFunctionLabel(mapping.function) else "Device controlled",
+                buttonFunctionLabel(mapping.function),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         Icon(
-            if (enabled) Icons.Outlined.ChevronRight else Icons.Outlined.Headphones,
-            contentDescription = if (enabled) "Choose assignment" else "Device controlled",
+            Icons.Outlined.ChevronRight,
+            contentDescription = "Choose assignment",
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }

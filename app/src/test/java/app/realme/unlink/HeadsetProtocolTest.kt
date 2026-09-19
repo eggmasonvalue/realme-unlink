@@ -86,6 +86,57 @@ class HeadsetProtocolTest {
     }
 
     @Test
+    fun parsesNoiseControlCycleState() {
+        val frame = HeadsetProtocol.Frame(
+            command = 0x810C,
+            transferId = 3,
+            payload = byteArrayOf(0, 2, 1, 11),
+        )
+
+        assertEquals(
+            HeadsetProtocol.NoiseControlReading(action = 2, type = 1, value = 11),
+            HeadsetProtocol.parseNoiseControl(frame),
+        )
+    }
+
+    @Test
+    fun parsesHighVolumeState() {
+        val enabledFrame = HeadsetProtocol.Frame(
+            command = 0x8110,
+            transferId = 4,
+            payload = byteArrayOf(0, 1),
+        )
+        val disabledFrame = HeadsetProtocol.Frame(
+            command = 0x8110,
+            transferId = 5,
+            payload = byteArrayOf(0, 0),
+        )
+        val errorFrame = HeadsetProtocol.Frame(
+            command = 0x8110,
+            transferId = 6,
+            payload = byteArrayOf(1, 1),
+        )
+
+        assertEquals(true, HeadsetProtocol.parseHighVolume(enabledFrame))
+        assertEquals(false, HeadsetProtocol.parseHighVolume(disabledFrame))
+        assertEquals(null, HeadsetProtocol.parseHighVolume(errorFrame))
+    }
+
+    @Test
+    fun encodesHighVolumeWritePayload() {
+        assertArrayEquals(byteArrayOf(1), HeadsetProtocol.encodeHighVolumeWrite(true))
+        assertArrayEquals(byteArrayOf(0), HeadsetProtocol.encodeHighVolumeWrite(false))
+    }
+
+    @Test
+    fun encodesNoiseCycleWritePayload() {
+        assertArrayEquals(byteArrayOf(2, 1, 3), HeadsetProtocol.encodeNoiseCycleWrite(3))
+        assertArrayEquals(byteArrayOf(2, 1, 9), HeadsetProtocol.encodeNoiseCycleWrite(9))
+        assertArrayEquals(byteArrayOf(2, 1, 10), HeadsetProtocol.encodeNoiseCycleWrite(10))
+        assertArrayEquals(byteArrayOf(2, 1, 11), HeadsetProtocol.encodeNoiseCycleWrite(11))
+    }
+
+    @Test
     fun encodesCustomEqModifyPayload() {
         val profile = HeadsetCapabilityDiscovery.EqProfile(
             selected = false,

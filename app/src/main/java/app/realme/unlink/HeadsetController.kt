@@ -136,7 +136,7 @@ class HeadsetController(context: Context) {
                 check(!snap.readFailed(HeadsetProtocol.EQ_STATUS_COMMAND) && snap.currentEqId != null) {
                     "Current EQ state is unavailable"
                 }
-                require(eqId == 0 || snap.eqProfiles.any { it.id == eqId }) {
+                require(eqId in 0..3 || snap.eqProfiles.any { it.id == eqId }) {
                     "Unknown EQ profile"
                 }
                 val profiles = snap.eqProfiles.map {
@@ -146,6 +146,38 @@ class HeadsetController(context: Context) {
             },
             performWrite = { session, _ ->
                 checkWrite(session.setEqStatus(eqId))
+            },
+        )
+    }
+
+    fun setNoiseCycle(cycleValue: Int) {
+        write(
+            label = "noise-control cycle",
+            optimisticUpdate = { snap ->
+                check(snap.capabilities.supportsCommand(HeadsetProtocol.SET_NOISE_REDUCTION_COMMAND)) {
+                    "Noise-control writes were not advertised"
+                }
+                require(cycleValue in listOf(3, 9, 10, 11)) { "Unsupported noise-control cycle value" }
+                val reading = HeadsetProtocol.NoiseControlReading(action = 2, type = 1, value = cycleValue)
+                snap.copy(noiseCycle = reading)
+            },
+            performWrite = { session, _ ->
+                checkWrite(session.setNoiseCycle(cycleValue))
+            },
+        )
+    }
+
+    fun setHighVolume(enabled: Boolean) {
+        write(
+            label = "volume enhancer",
+            optimisticUpdate = { snap ->
+                check(snap.capabilities.supportsCommand(HeadsetProtocol.SET_HIGH_VOLUME_COMMAND)) {
+                    "Volume enhancer write was not advertised"
+                }
+                snap.copy(highVolumeEnabled = enabled)
+            },
+            performWrite = { session, _ ->
+                checkWrite(session.setHighVolume(enabled))
             },
         )
     }
@@ -554,6 +586,17 @@ class HeadsetController(context: Context) {
                 session.transact(HeadsetProtocol.MULTI_BASS_ENGINE_COMMAND),
             ) ?: error("Bass response was invalid")
         }
+        val highVolume = readFeature<Boolean?>(HeadsetProtocol.HIGH_VOLUME_COMMAND, null) {
+            HeadsetProtocol.parseHighVolume(session.queryHighVolume())
+                ?: error("High-volume response was invalid")
+        }
+        val noiseCycle = readFeature<HeadsetProtocol.NoiseControlReading?>(
+            HeadsetProtocol.NOISE_LEVEL_COMMAND,
+            null,
+        ) {
+            HeadsetProtocol.parseNoiseControl(session.queryNoiseCycle())
+                ?: error("Noise-cycle response was invalid")
+        }
 
         return HeadsetSnapshot(
             deviceName = session.deviceName,
@@ -573,6 +616,8 @@ class HeadsetController(context: Context) {
             findModeActive = false,
             capabilities = capabilities,
             readFailures = readFailures,
+            highVolumeEnabled = highVolume,
+            noiseCycle = noiseCycle,
         )
     }
 

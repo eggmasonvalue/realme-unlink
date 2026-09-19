@@ -34,11 +34,11 @@ graph TD
 | --- | --- |
 | `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:141` | Root state rendering and modal-sheet coordination. |
 | `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:336` | Compact device, battery, and connection header. |
-| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:608` | Sound group with one-tap noise modes and EQ/Dynamic Audio summaries. |
+| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:608` | Sound group with one-tap noise modes, Dynamic bass, Spatial audio, and Volume enhancer. |
 | `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:882` | Device settings group ordered by expected use. |
-| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:1138` | ANC level and Smart de-wind sheet. |
+| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:1138` | ANC level, Smart de-wind, and button cycling sheet. |
 | `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:1267` | Hardware/custom EQ sheet with curated suggestions. |
-| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:1348` | Dynamic Audio sheet. |
+| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:1348` | Dynamic bass sheet. |
 | `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:1518` | Shared button-assignment sheet and action picker. |
 | `app/src/main/java/app/realme/unlink/ui/UnlinkTheme.kt:18` | Dynamic Material 3 Expressive theme and bundled Google Sans Flex typography. |
 | `app/src/main/res/font/google_sans_flex.ttf:1` | Local variable font asset. |
@@ -48,13 +48,14 @@ graph TD
 | Path | Responsibility |
 | --- | --- |
 | `app/src/main/java/app/realme/unlink/HeadsetController.kt:27` | Foreground session lifecycle, serialized operations, validation, optimistic updates, rollback, and graceful locator shutdown. |
-| `app/src/main/java/app/realme/unlink/SessionLifecycleGate.kt:1` | Generation ownership preventing stale lifecycle cleanup. |
-| `app/src/main/java/app/realme/unlink/HeadsetSnapshot.kt:4` | Immutable device state, capabilities, and per-command read failures. |
-| `app/src/main/java/app/realme/unlink/HeadsetSession.kt:28` | RFCOMM transaction serialization, response matching, timeout, and cancellation. |
-| `app/src/main/java/app/realme/unlink/HeadsetProtocol.kt:14` | OPPOv1 framing, command encoding, fragmentation, and response parsing. |
-| `app/src/main/java/app/realme/unlink/HeadsetCapabilityDiscovery.kt:14` | Canonical read-only query inventory and response models. |
+| `app/src/main/java/app/realme/unlink/HeadsetSession.kt:35` | Low-level RFCOMM transport, packet assembly, checksum framing, and frame filtering. |
+| `app/src/main/java/app/realme/unlink/HeadsetProtocol.kt:11` | Wire opcodes, frame encode/decode, and payload builders. |
+| `app/src/main/java/app/realme/unlink/HeadsetCapabilities.kt:10` | Bitmap-based command capabilities parser. |
+| `app/src/main/java/app/realme/unlink/HeadsetCapabilityDiscovery.kt:13` | Safe read-only discovery queries and response parsers. |
+| `app/src/main/java/app/realme/unlink/HeadsetSnapshot.kt:4` | Immutable product-facing state snapshot. |
+| `app/src/main/java/app/realme/unlink/SessionLifecycleGate.kt:1` | Generation-bound session ownership guarding concurrent lifecycle tasks. |
 
-### Semantics
+### Hardware Mapping and Semantics
 
 | Path | Responsibility |
 | --- | --- |
@@ -76,10 +77,16 @@ graph TD
 ## Validated Protocol State
 
 - Noise values: Off `1`, Transparency `2`, Mild `4`, Max `8`, Moderate `16`, Smart `32`.
+- ANC cycle modes: ANC and Off `3`, ANC and Transparency `9`, Transparency and Off `10`, All modes `11` via `0x010C`/`0x0404` (action `2`).
 - MFB functions: None `0`, Play/Pause `1`, Voice Assistant `4`, Previous `5`, Next `6`, Game mode `17`.
-- Switches: Game mode `6`, Auto answer `8`, dual-device `17`, Smart de-wind `26`, Dynamic Audio `29`.
-- Dynamic Audio bands: Low type `1`, Mid type `2`, High type `3`; baseline is `0/0/0`.
+- Switches: Game mode `6`, Auto answer `8`, dual-device `17`, Smart de-wind `26`, Spatial Audio `27`, Dynamic bass `29`.
+- Dynamic bass bands: Low type `1`, Mid type `2`, High type `3`; baseline is `0/0/0`.
 - Custom EQ: profile ID `4`, six bands at 50/250/1000/4000/8000/16000 Hz.
-- Official EQ IDs confirmed so far: Nature Balance `0`, Clear Vocals `2`, Custom1 `4`.
+- Official EQ IDs: Nature Balance `0`, Bass Boost `1`, Clear Vocals `2`, Clear Bass `3`, Custom `4`.
+- Volume Enhancer: GET `0x0110` (response `0x8110`), SET `0x0407` with 1-byte payload (`1` for enabled, `0` for disabled).
 
-Volume enhancer and the ANC-button mode-list encoding remain unresolved and are not exposed as writable controls.
+## Intentional Feature Exclusions
+
+- **Find Phone from Headset:** Excluded by design. Listening for button events from the headset while the phone is locked requires an open RFCOMM socket, persistent foreground service, and partial wake locks, draining battery on both devices.
+- **Earbud Fit Test (`ITEM_COMPACTNESS_DETECT`):** Excluded because neckband hardware lacks optical in-ear proximity sensors.
+- **Golden Hearing / HearID (`ITEM_HEAR_ID`):** Excluded by the strict zero-telemetry and local-only architecture (the vendor feature relies on proprietary cloud hearing-curve calibration).

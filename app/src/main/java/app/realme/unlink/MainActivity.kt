@@ -105,6 +105,8 @@ class MainActivity : ComponentActivity() {
                     onSwitch = controller::setSwitch,
                     onButtons = controller::setButtonMapping,
                     onFindMode = controller::setFindMode,
+                    onVolumeEnhancer = controller::setHighVolume,
+                    onNoiseCycle = controller::setNoiseCycle,
                 )
             }
         }

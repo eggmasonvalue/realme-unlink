@@ -2,6 +2,10 @@
 
 A local, account-free companion for **realme Buds Wireless 5 ANC (RMA2412)** on Pixel 10 / Android 17 (API 37).
 
+<p align="center">
+  <img src="docs/screenshots/dashboard.png" alt="Realme Unlink Dashboard" width="360" />
+</p>
+
 - No cloud dependency, telemetry, account, ads, or `INTERNET` permission.
 - Quick Settings tile entrypoint; no launcher icon.
 - Foreground-only Bluetooth Classic RFCOMM control session.
@@ -9,17 +13,18 @@ A local, account-free companion for **realme Buds Wireless 5 ANC (RMA2412)** on 
 
 ## Features
 
-- One-tap Noise cancellation, Off, and Ambient modes.
+- One-tap ANC, Transparency, and Off modes.
 - ANC levels: Smart, Max, Moderate, and Mild; Smart de-wind control.
-- Hardware EQ profiles and custom six-band EQ with locally curated suggestions.
-- Dynamic Audio enable and Low/Mid/High adjustment.
+- ANC button mode cycling configuration (ANC ↔ Off, ANC ↔ Transparency, Transparency ↔ Off, or all three).
+- Hardware EQ profiles (Nature Balance, Bass Boost, Clear Vocals, Clear Bass) and custom six-band EQ with locally curated suggestions.
+- Volume enhancer toggle.
+- Spatial Audio toggle.
+- Dynamic bass enable and Low/Mid/High adjustment.
 - Game mode, Auto answer, and dual-device controls when reported by the headset.
 - MFB remapping for Single tap, Double tap, Triple tap, and Touch and hold:
   None, Play/Pause, Next track, Previous track, Voice Assistant, and Game mode.
 - Foreground Find neckband tone.
 - Battery and connection status.
-
-Volume enhancer is hidden because its official-app state has no confirmed readback command. The ANC button is displayed but remains read-only because its mode-list selection is not represented by the known button-mapping query.
 
 ## Connection Model
 
@@ -27,12 +32,11 @@ The app opens its RFCOMM control socket while visible and closes it when backgro
 
 ### Deliberately Not Implemented
 
-- **Find My Phone from the neckband:** The official app exposes this feature, but its trigger and background mechanism remain unresolved. The implemented locator is phone-to-neckband only.
-- **Background telemetry or control:** Would require a persistent process, notification, and control connection.
+- **Find My Phone from the neckband:** Excluded by design due to power consumption. Listening for asynchronous headset button events while the phone is locked requires maintaining an open RFCOMM link, persistent foreground service, and wake locks, which continuously drains battery on both devices. The locator is phone-to-neckband only during foreground sessions.
+- **Background telemetry or control:** Excluded to eliminate standby power drain; would require a persistent background service and ongoing radio polling.
 - **Firmware updates:** No trusted local firmware source or validated update path exists.
 - **In-app pairing:** Pair through Android Bluetooth settings.
 - **Other headset models:** Protocol behavior is validated only for the exact supported model name.
-- **Proprietary spatial audio:** No accepted, validated headset write path exists.
 
 ## Build and Test
 

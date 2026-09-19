@@ -20,9 +20,9 @@ class EqSuggestionsTest {
         assertEquals(listOf(0, 0, 0, 0, 0, 0), flat.dbValues)
         assertEquals(profile.frequencies, flat.frequencies)
 
-        val bass = EqSuggestions.apply(profile, EqSuggestions.suggestions.first { it.id == "bass" })
-        assertEquals(6, bass.dbValues[0])
-        assertTrueInRange(bass.dbValues, -6, 6)
+        val pump = EqSuggestions.apply(profile, EqSuggestions.suggestions.first { it.id == "pump_power" })
+        assertEquals(4, pump.dbValues[0])
+        assertTrueInRange(pump.dbValues, -6, 6)
     }
 
     @Test

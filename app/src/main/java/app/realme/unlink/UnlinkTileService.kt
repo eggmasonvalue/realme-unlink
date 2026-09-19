@@ -1,8 +1,8 @@
 package app.realme.unlink
 
+import android.app.ActivityOptions
 import android.app.PendingIntent
 import android.content.Intent
-import android.os.Build
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 
@@ -16,33 +16,44 @@ class UnlinkTileService : TileService() {
         qsTile?.apply {
             state = Tile.STATE_INACTIVE
             label = getString(R.string.app_name)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                subtitle = "Buds controls"
-            }
+            subtitle = "Buds controls"
+            activityLaunchForClick = createLaunchIntent()
             updateTile()
         }
     }
 
     override fun onClick() {
-        openApp()
+        if (isLocked) {
+            unlockAndRun {
+                openApp()
+            }
+        } else {
+            openApp()
+        }
+    }
+
+    private fun createLaunchIntent(): PendingIntent {
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val options = ActivityOptions.makeBasic().apply {
+            setPendingIntentCreatorBackgroundActivityStartMode(
+                ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOW_IF_VISIBLE,
+            )
+        }
+        return PendingIntent.getActivity(
+            this,
+            REQUEST_OPEN,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            options.toBundle(),
+        )
     }
 
     private fun openApp() {
-        val intent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            val pendingIntent = PendingIntent.getActivity(
-                this,
-                REQUEST_OPEN,
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-            )
-            startActivityAndCollapse(pendingIntent)
-        } else {
-            @Suppress("DEPRECATION", "StartActivityAndCollapseDeprecated")
-            startActivityAndCollapse(intent)
-        }
+        startActivityAndCollapse(createLaunchIntent())
     }
 
     private companion object {

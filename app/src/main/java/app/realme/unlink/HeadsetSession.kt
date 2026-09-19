@@ -37,7 +37,7 @@ class HeadsetSession private constructor(
 
     companion object {
         private const val DEFAULT_RESPONSE_TIMEOUT_MILLIS = 6_000L
-        private const val MAX_IGNORED_FRAMES = 8
+        private const val MAX_IGNORED_FRAMES = 64
         private val services = listOf(
             HeadsetProtocol.controlUuid to "realme control UUID",
             HeadsetProtocol.sppUuid to "SPP fallback",
@@ -185,6 +185,12 @@ class HeadsetSession private constructor(
         return transact(HeadsetProtocol.NOISE_LEVEL_COMMAND, byteArrayOf(1, 1))
     }
 
+    fun queryNoiseCycle(): HeadsetProtocol.Frame {
+        return transact(HeadsetProtocol.NOISE_LEVEL_COMMAND, byteArrayOf(2, 1))
+    }
+
+    fun queryHighVolume(): HeadsetProtocol.Frame = transact(HeadsetProtocol.HIGH_VOLUME_COMMAND)
+
     fun queryButtonMappings(): HeadsetProtocol.Frame = transact(
         HeadsetCapabilityDiscovery.buttonMappingQuery.command,
         HeadsetCapabilityDiscovery.buttonMappingQuery.payload,
@@ -218,10 +224,24 @@ class HeadsetSession private constructor(
         return transact(HeadsetProtocol.SET_EQ_STATUS_COMMAND, byteArrayOf(eqId.toByte()))
     }
 
+    fun setHighVolume(enabled: Boolean): HeadsetProtocol.Frame {
+        return transact(
+            HeadsetProtocol.SET_HIGH_VOLUME_COMMAND,
+            HeadsetProtocol.encodeHighVolumeWrite(enabled),
+        )
+    }
+
     fun setNoiseControl(state: HeadsetProtocol.NoiseControlReading): HeadsetProtocol.Frame {
         return transact(
             HeadsetProtocol.SET_NOISE_REDUCTION_COMMAND,
             byteArrayOf(state.action.toByte(), state.type.toByte(), state.value.toByte()),
+        )
+    }
+
+    fun setNoiseCycle(cycleValue: Int): HeadsetProtocol.Frame {
+        return transact(
+            HeadsetProtocol.SET_NOISE_REDUCTION_COMMAND,
+            HeadsetProtocol.encodeNoiseCycleWrite(cycleValue),
         )
     }
 

@@ -24,15 +24,19 @@ class SwitchCatalogTest {
     }
 
     @Test
-    fun omitsUnvalidatedSwitchIds() {
+    fun includesValidatedSwitchesAndOmitsUnvalidatedSwitchIds() {
         val logical = SwitchCatalog.logicalSwitches(
             listOf(
                 HeadsetCapabilityDiscovery.SwitchFeatureStatus(5, 1),
                 HeadsetCapabilityDiscovery.SwitchFeatureStatus(9, 1),
+                HeadsetCapabilityDiscovery.SwitchFeatureStatus(31, 1),
                 HeadsetCapabilityDiscovery.SwitchFeatureStatus(27, 1),
                 HeadsetCapabilityDiscovery.SwitchFeatureStatus(26, 1),
             ),
         )
-        assertEquals(listOf(26), logical.map { it.id })
+        assertEquals(listOf(26, 27), logical.map { it.id })
+        assertEquals("Smart de-wind", logical[0].label)
+        assertEquals("Spatial audio", logical[1].label)
+        assertTrue(logical[1].enabled)
     }
 }

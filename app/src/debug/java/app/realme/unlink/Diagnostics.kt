@@ -11,7 +11,8 @@ object Diagnostics {
         (intent.getBooleanExtra(EXTRA_READ_BUTTON_MAPPINGS, false) ||
             intent.getBooleanExtra(EXTRA_RESTORE_BUTTON_BASELINE, false) ||
             intent.getBooleanExtra(EXTRA_RUN_BUTTON_TEST, false) ||
-            intent.getBooleanExtra(EXTRA_RUN_EVIDENCE_MATRIX, false))
+            intent.getBooleanExtra(EXTRA_RUN_EVIDENCE_MATRIX, false) ||
+            intent.getBooleanExtra(EXTRA_TEST_LDAC, false))
 
     fun handleIntent(activity: MainActivity, intent: Intent?) {
         if (!isDiagnosticIntent(intent)) return
@@ -70,6 +71,21 @@ object Diagnostics {
                         )
                         result.findings.forEach { Log.i(EVIDENCE_TAG, "FINDING: $it") }
                     }
+
+                    intent?.getBooleanExtra(EXTRA_TEST_LDAC, false) == true -> {
+                        val switchId = intent.getIntExtra(EXTRA_LDAC_SWITCH_ID, 38)
+                        val enable = intent.getBooleanExtra(EXTRA_LDAC_ENABLE, true)
+                        val readOnly = intent.getBooleanExtra(EXTRA_LDAC_READ_ONLY, false)
+                        val result = LdacProbe(activity.applicationContext).run(switchId, enable, readOnly)
+                        Log.i(
+                            LDAC_TAG,
+                            "LDAC_RESULT: device=${result.deviceName} switch=${result.switchId} " +
+                                "readOnly=${result.isReadOnly} enable=${result.requestedValue} status=${result.status} " +
+                                "baseline=${result.baselineValue} readback=${result.readbackValue} " +
+                                "allSwitches=${result.allSwitches.map { "${it.featureId}=${it.value}" }} " +
+                                "tx=${result.txHex} rx=${result.rxHex}",
+                        )
+                    }
                 }
             } catch (error: Exception) {
                 Log.e(TAG, "Diagnostic failed", error)
@@ -87,8 +103,13 @@ object Diagnostics {
     private const val EXTRA_RUN_EVIDENCE_MATRIX = "run_evidence_matrix"
     private const val EXTRA_RUN_BUTTON_TEST = "run_button_test"
     private const val EXTRA_RESTORE_BUTTON_BASELINE = "restore_button_baseline"
+    private const val EXTRA_TEST_LDAC = "test_ldac"
+    private const val EXTRA_LDAC_SWITCH_ID = "ldac_switch_id"
+    private const val EXTRA_LDAC_ENABLE = "ldac_enable"
+    private const val EXTRA_LDAC_READ_ONLY = "ldac_read_only"
     private const val EVIDENCE_TAG = "UnlinkEvidence"
     private const val BUTTON_READ_TAG = "UnlinkButtonRead"
     private const val BUTTON_TEST_TAG = "UnlinkButtonTest"
+    private const val LDAC_TAG = "UnlinkLdacTest"
     private const val TAG = "UnlinkDiagnostics"
 }

@@ -17,11 +17,31 @@ android {
         versionName = "1.0.0"
     }
 
+    val releaseKeystore = rootProject.file("keystore/release.jks")
+
+    signingConfigs {
+        create("release") {
+            if (releaseKeystore.exists()) {
+                storeFile = releaseKeystore
+                storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "realme-unlink"
+                keyAlias = System.getenv("KEY_ALIAS") ?: "realme-unlink"
+                keyPassword = System.getenv("KEY_PASSWORD") ?: "realme-unlink"
+                enableV1Signing = true
+                enableV2Signing = true
+                enableV3Signing = true
+                enableV4Signing = true
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+            if (releaseKeystore.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 

@@ -101,6 +101,7 @@ object HeadsetCapabilityDiscovery {
         Query("Hearing enhancement data", HeadsetProtocol.HEARING_ENHANCEMENT_COMMAND),
         Query("EQ profiles", HeadsetProtocol.ALL_EQ_COMMAND),
         Query("Multi-band bass-engine data", HeadsetProtocol.MULTI_BASS_ENGINE_COMMAND),
+        Query("Volume enhancer", HeadsetProtocol.HIGH_VOLUME_COMMAND),
     )
 
     /**
@@ -179,6 +180,12 @@ object HeadsetCapabilityDiscovery {
                 val values = parseMultiBassEngine(frame)
                 if (values == null) "status=0, invalid multi-bass payload"
                 else "status=0, values=${values.joinToString { bassSummary(it) }}"
+            }
+
+            HeadsetProtocol.HIGH_VOLUME_COMMAND -> {
+                val highVolume = HeadsetProtocol.parseHighVolume(frame)
+                if (highVolume == null) "status=0, invalid high-volume payload"
+                else "status=0, enabled=$highVolume"
             }
 
             else -> "status=0, payload=${HeadsetProtocol.hex(payload)}"

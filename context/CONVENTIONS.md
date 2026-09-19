@@ -36,7 +36,7 @@ git diff --check
 - Treat transport errors as session failures and decode errors as per-feature failures.
 - Bind sessions to foreground lifecycle generation ownership.
 - Stop active Find neckband mode before teardown.
-- Use `0x012C`/`0x041B` for Dynamic Audio bands; omit `0x0124`.
+- Use `0x012C`/`0x041B` for Dynamic bass bands; omit `0x0124`.
 
 ## Writes
 
@@ -44,9 +44,10 @@ git diff --check
 - Gate controls on successful reads and advertised capabilities.
 - Apply optimistic state with error rollback.
 - Compensate multi-command Custom EQ failures back to the prior profile.
-- Use switch ID `6` for Game mode, `8` for Auto answer, `26` for Smart de-wind, and `29` for Dynamic Audio.
+- Use switch ID `6` for Game mode, `8` for Auto answer, `26` for Smart de-wind, `27` for Spatial Audio, and `29` for Dynamic bass.
 - Offer MFB functions `0`, `1`, `4`, `5`, `6`, and `17` only.
-- Keep Volume enhancer and ANC-button mode-list selection non-writable until their representations are resolved.
+- Use `0x0110`/`0x0407` for Volume enhancer.
+- Use `0x010C`/`0x0404` action 2 for ANC-button mode-list cycling.
 
 ## Compose
 

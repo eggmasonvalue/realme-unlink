@@ -85,6 +85,7 @@ class HeadsetEvidenceProbe(private val context: Context) {
             findings += runFamily("button remap") { validateButtonRemap(session, capabilities) }
             findings += runFamily("custom EQ") { validateCustomEq(session, capabilities) }
             findings += runFamily("bass") { validateBassBands(session, capabilities) }
+            findings += runFamily("volume enhancer") { validateVolumeEnhancer(session, capabilities) }
             findings += runFamily("wear") { validateWearSnapshot(session, capabilities) }
             findings += runFamily("multipoint") { validateMultipointSnapshot(session, capabilities) }
             findings += runFamily("find-mode") { validateFindModeAction(session, capabilities) }
@@ -147,6 +148,29 @@ class HeadsetEvidenceProbe(private val context: Context) {
             restoreNoise(session, baseline, findings)
         }
         findings += "noise mode mapping: $changedAccepted/${candidates.size} alternate values verified"
+
+        try {
+            val cycleReading = HeadsetProtocol.parseNoiseControl(session.queryNoiseCycle())
+            if (cycleReading != null) {
+                findings += "ANC button cycle baseline: value=${cycleReading.value}"
+                val altCycle = if (cycleReading.value == 11) 10 else 11
+                checkWriteAccepted("noise cycle write $altCycle", session.setNoiseCycle(altCycle))
+                val afterCycle = HeadsetProtocol.parseNoiseControl(session.queryNoiseCycle())
+                check(afterCycle?.value == altCycle) {
+                    "ANC button cycle read-back was ${afterCycle?.value}, expected $altCycle"
+                }
+                findings += "ANC button cycle: changed ${cycleReading.value} → $altCycle and verified read-back"
+                checkWriteAccepted("noise cycle restore ${cycleReading.value}", session.setNoiseCycle(cycleReading.value))
+                val restoredCycle = HeadsetProtocol.parseNoiseControl(session.queryNoiseCycle())
+                check(restoredCycle?.value == cycleReading.value) {
+                    "ANC button cycle restore read-back was ${restoredCycle?.value}, expected ${cycleReading.value}"
+                }
+                findings += "ANC button cycle: restored baseline ${cycleReading.value} and verified read-back"
+            }
+        } catch (e: Exception) {
+            findings += "ANC button cycle: failed (${e.message})"
+        }
+
         return findings
     }
 
@@ -169,11 +193,9 @@ class HeadsetEvidenceProbe(private val context: Context) {
             },
         )
 
-        // Boolean-looking IDs already returned by this headset. Skip spatial (27) writes because
-        // the dedicated spatial command path is unsupported on this model.
+        // Boolean-looking IDs already returned by this headset.
         val candidates = baseline
             .filter { it.value == 0 || it.value == 1 }
-            .filter { it.featureId != 27 }
             .map { it.featureId }
             .distinct()
             .sorted()
@@ -437,23 +459,28 @@ class HeadsetEvidenceProbe(private val context: Context) {
         )
         check(baseline.isNotEmpty()) { "multi-band bass returned no values" }
 
-        val original = baseline.first()
-        val next = when {
-            original.currentValue < original.maxValue -> original.currentValue + 1
-            original.currentValue > original.minValue -> original.currentValue - 1
-            else -> error("bass band has no room to move within range")
-        }
-        val modified = original.copy(currentValue = next)
-
         try {
-            checkNotCancelled()
-            checkWriteAccepted("bass band write", session.setBassEngine(modified))
-            val after = readMultiBass(session)
-            val afterBand = after.firstOrNull { it.type == original.type } ?: after.first()
-            check(afterBand.currentValue == next) {
-                "bass read-back current=${afterBand.currentValue}, expected $next"
+            for (original in baseline) {
+                checkNotCancelled()
+                val next = when {
+                    original.currentValue < original.maxValue -> original.currentValue + 1
+                    original.currentValue > original.minValue -> original.currentValue - 1
+                    else -> continue
+                }
+                val modified = original.copy(currentValue = next)
+                checkWriteAccepted("bass band write type=${original.type}", session.setBassEngine(modified))
+                val after = readMultiBass(session)
+                val afterBand = after.firstOrNull { it.type == original.type }
+                check(afterBand?.currentValue == next) {
+                    "bass read-back current=${afterBand?.currentValue}, expected $next"
+                }
+                findings += "bass: changed type=${original.type} ${original.currentValue} → $next and verified"
+                checkWriteAccepted("bass restore type=${original.type}", session.setBassEngine(original))
+                val restoredBand = readMultiBass(session).firstOrNull { it.type == original.type }
+                check(restoredBand?.currentValue == original.currentValue) {
+                    "bass restore current=${restoredBand?.currentValue}, expected ${original.currentValue}"
+                }
             }
-            findings += "bass: changed type=${original.type} ${original.currentValue} → $next and verified"
         } finally {
             // Restore every baseline band in case the write affected more than one.
             for (band in baseline) {
@@ -464,6 +491,34 @@ class HeadsetEvidenceProbe(private val context: Context) {
                 "bass restore mismatch: expected $baseline, got $restored"
             }
             findings += "bass: restored all bands and verified read-back"
+        }
+        return findings
+    }
+
+    private fun validateVolumeEnhancer(
+        session: HeadsetSession,
+        capabilities: HeadsetCapabilities,
+    ): List<String> {
+        if (!capabilities.supportsCommand(HeadsetProtocol.HIGH_VOLUME_COMMAND) ||
+            !capabilities.supportsCommand(HeadsetProtocol.SET_HIGH_VOLUME_COMMAND)
+        ) {
+            return listOf("volume enhancer: skipped (commands not advertised)")
+        }
+        val before = HeadsetProtocol.parseHighVolume(session.queryHighVolume())
+            ?: return listOf("volume enhancer: query response unparseable")
+        val findings = mutableListOf("volume enhancer baseline: $before")
+        val next = !before
+        try {
+            checkNotCancelled()
+            checkWriteAccepted("volume enhancer set $next", session.setHighVolume(next))
+            val after = HeadsetProtocol.parseHighVolume(session.queryHighVolume())
+            check(after == next) { "volume enhancer read-back was $after, expected $next" }
+            findings += "volume enhancer: changed $before → $next and verified read-back"
+        } finally {
+            checkWriteAccepted("volume enhancer restore $before", session.setHighVolume(before))
+            val restored = HeadsetProtocol.parseHighVolume(session.queryHighVolume())
+            check(restored == before) { "volume enhancer restore read-back was $restored, expected $before" }
+            findings += "volume enhancer: restored baseline $before and verified read-back"
         }
         return findings
     }

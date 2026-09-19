@@ -39,10 +39,10 @@ object HeadsetSemantics {
         }
 
         2 -> when (value) {
-            3 -> "Off ↔ transparency"
-            9 -> "Ordinary noise cancellation"
-            10 -> "Transparency"
-            11 -> "Cycle through all modes"
+            3 -> "Noise cancellation and Off"
+            9 -> "Noise cancellation and Transparency"
+            10 -> "Transparency and Off"
+            11 -> "Noise cancellation, Transparency, and Off"
             else -> null
         }
 
@@ -89,6 +89,7 @@ object HeadsetSemantics {
         8 -> "Auto answer"
         17 -> "Dual-device connection"
         26 -> "Smart de-wind"
+        27 -> "Spatial audio"
         29 -> "Dynamic audio"
         else -> null
     }

@@ -17,6 +17,7 @@ object HeadsetProtocol {
     const val NOISE_LEVEL_COMMAND = 0x010C
     const val SWITCH_FEATURE_COMMAND = 0x010D
     const val EQ_STATUS_COMMAND = 0x010F
+    const val HIGH_VOLUME_COMMAND = 0x0110
     const val MULTI_CONNECT_COMMAND = 0x0112
     const val HEARING_ENHANCEMENT_COMMAND = 0x0115
     const val ALL_EQ_COMMAND = 0x0122
@@ -27,6 +28,7 @@ object HeadsetProtocol {
     const val SET_SWITCH_FEATURE_COMMAND = 0x0403
     const val SET_NOISE_REDUCTION_COMMAND = 0x0404
     const val SET_EQ_STATUS_COMMAND = 0x0406
+    const val SET_HIGH_VOLUME_COMMAND = 0x0407
     const val SET_CUSTOM_EQ_COMMAND = 0x0418
     const val SET_BASS_ENGINE_COMMAND = 0x041B
     private const val RESPONSE_MASK = 0x8000
@@ -276,6 +278,20 @@ object HeadsetProtocol {
 
     fun parseSetStatus(frame: Frame): Int? {
         return frame.payload.firstOrNull()?.toInt()?.and(0xFF)
+    }
+
+    fun parseHighVolume(frame: Frame): Boolean? {
+        if (frame.payload.size < 2) return null
+        if (frame.payload[0].toInt() and 0xFF != 0) return null
+        return frame.payload[1].toInt() != 0
+    }
+
+    fun encodeHighVolumeWrite(enabled: Boolean): ByteArray =
+        byteArrayOf(if (enabled) 1 else 0)
+
+    fun encodeNoiseCycleWrite(cycleValue: Int): ByteArray {
+        require(cycleValue in listOf(3, 9, 10, 11)) { "Unsupported noise cycle value: $cycleValue" }
+        return byteArrayOf(0x02, 0x01, cycleValue.toByte())
     }
 
     /** Builds a custom-EQ write payload matching the vendor modify/add/delete envelope. */

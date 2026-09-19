@@ -17,6 +17,8 @@ data class HeadsetSnapshot(
     val findModeActive: Boolean = false,
     val capabilities: HeadsetCapabilities,
     val readFailures: Set<Int> = emptySet(),
+    val highVolumeEnabled: Boolean? = null,
+    val noiseCycle: HeadsetProtocol.NoiseControlReading? = null,
 ) {
     data class BatteryLevel(
         val deviceType: Int,
@@ -72,12 +74,19 @@ data class HeadsetSnapshot(
     val currentEqLabel: String
         get() {
             val id = currentEqId ?: return "Unknown"
-            eqProfiles.firstOrNull { it.id == id }?.name?.let { return it }
+            eqProfiles.firstOrNull { it.id == id }?.name?.takeIf { it.isNotBlank() }?.let { return it }
             return when (id) {
-                0 -> "Original"
+                0 -> "Nature Balance"
+                1 -> "Bass Boost"
+                2 -> "Clear Vocals"
+                3 -> "Clear Bass"
+                4 -> "Custom"
                 else -> "Profile $id"
             }
         }
+
+    val spatialAudioEnabled: Boolean?
+        get() = switches.firstOrNull { it.id == 27 }?.enabled
 
     val gameModeEnabled: Boolean?
         get() = switches.firstOrNull { it.id == 6 }?.enabled
