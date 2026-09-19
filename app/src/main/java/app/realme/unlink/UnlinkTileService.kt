@@ -17,6 +17,7 @@ class UnlinkTileService : TileService() {
             state = Tile.STATE_INACTIVE
             label = getString(R.string.app_name)
             subtitle = "Buds controls"
+            icon = android.graphics.drawable.Icon.createWithResource(this@UnlinkTileService, R.drawable.ic_unlink_tile)
             activityLaunchForClick = createLaunchIntent()
             updateTile()
         }

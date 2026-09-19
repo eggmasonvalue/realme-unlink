@@ -32,14 +32,14 @@ graph TD
 
 | Path | Responsibility |
 | --- | --- |
-| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:141` | Root state rendering and modal-sheet coordination. |
-| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:336` | Compact device, battery, and connection header. |
-| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:608` | Sound group with one-tap noise modes, Dynamic bass, Spatial audio, and Volume enhancer. |
-| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:882` | Device settings group ordered by expected use. |
-| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:1138` | ANC level, Smart de-wind, and button cycling sheet. |
-| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:1267` | Hardware/custom EQ sheet with curated suggestions. |
-| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:1348` | Dynamic bass sheet. |
-| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:1518` | Shared button-assignment sheet and action picker. |
+| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:147` | Root state rendering and modal-sheet coordination. |
+| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:348` | Compact device, battery, and connection header. |
+| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:630` | Sound group with one-tap noise modes, Dynamic bass, Spatial audio, and Volume enhancer. |
+| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:921` | Device settings group ordered by expected use. |
+| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:1164` | ANC level, Smart de-wind, and button cycling sheet. |
+| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:1402` | Hardware/custom EQ sheet with curated suggestions. |
+| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:1546` | Dynamic bass sheet. |
+| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:1663` | Shared button-assignment sheet and action picker. |
 | `app/src/main/java/app/realme/unlink/ui/UnlinkTheme.kt:18` | Dynamic Material 3 Expressive theme and bundled Google Sans Flex typography. |
 | `app/src/main/res/font/google_sans_flex.ttf:1` | Local variable font asset. |
 

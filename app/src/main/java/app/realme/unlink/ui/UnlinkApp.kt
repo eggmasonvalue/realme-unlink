@@ -31,27 +31,29 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
+import androidx.compose.material.icons.outlined.Air
+import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.Bluetooth
 import androidx.compose.material.icons.outlined.BluetoothDisabled
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.ChevronRight
-import androidx.compose.material.icons.outlined.GraphicEq
+import androidx.compose.material.icons.outlined.Devices
+import androidx.compose.material.icons.outlined.Equalizer
 import androidx.compose.material.icons.outlined.Headphones
-import androidx.compose.material.icons.outlined.Hearing
-import androidx.compose.material.icons.outlined.HearingDisabled
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Mic
-import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.NoiseAware
 import androidx.compose.material.icons.outlined.NoiseControlOff
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.Sensors
-import androidx.compose.material.icons.outlined.SpeakerPhone
-import androidx.compose.material.icons.outlined.SurroundSound
+import androidx.compose.material.icons.outlined.RingVolume
+import androidx.compose.material.icons.outlined.SkipNext
+import androidx.compose.material.icons.outlined.SkipPrevious
+import androidx.compose.material.icons.outlined.SpatialAudio
+import androidx.compose.material.icons.outlined.Speaker
+import androidx.compose.material.icons.outlined.SportsEsports
 import androidx.compose.material.icons.outlined.TouchApp
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.BottomSheetDefaults
@@ -90,8 +92,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
@@ -120,8 +125,8 @@ private enum class SheetKind {
 
 private enum class NoiseMode(val value: Int, val label: String) {
     Anc(8, "ANC"),
-    Ambient(2, "Transparency"),
     Off(1, "Off"),
+    Ambient(2, "Transparency"),
 }
 
 private data class ButtonChoice(
@@ -133,11 +138,11 @@ private data class ButtonChoice(
 
 private val buttonChoices = listOf(
     ButtonChoice(1, "Play / pause", Icons.Outlined.PlayArrow, supportedByCurrentController = true),
-    ButtonChoice(6, "Next track", Icons.AutoMirrored.Outlined.ArrowForward, supportedByCurrentController = true),
-    ButtonChoice(5, "Previous track", Icons.AutoMirrored.Outlined.ArrowBack, supportedByCurrentController = true),
+    ButtonChoice(6, "Next track", Icons.Outlined.SkipNext, supportedByCurrentController = true),
+    ButtonChoice(5, "Previous track", Icons.Outlined.SkipPrevious, supportedByCurrentController = true),
     ButtonChoice(4, "Voice assistant", Icons.Outlined.Mic, supportedByCurrentController = true),
-    ButtonChoice(17, "Game mode", Icons.Outlined.Sensors, supportedByCurrentController = true),
-    ButtonChoice(0, "None", Icons.Outlined.Headphones, supportedByCurrentController = true),
+    ButtonChoice(17, "Game mode", Icons.Outlined.SportsEsports, supportedByCurrentController = true),
+    ButtonChoice(0, "None", Icons.Outlined.Block, supportedByCurrentController = true),
 )
 
 @Composable
@@ -652,7 +657,7 @@ private fun NoiseControlCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
-                    Icons.Outlined.Hearing,
+                    painterResource(R.drawable.ic_mode_anc),
                     contentDescription = null,
                     modifier = Modifier.size(24.dp),
                     tint = MaterialTheme.colorScheme.secondary,
@@ -717,10 +722,10 @@ private fun NoiseModeTile(
     modifier: Modifier,
     onClick: () -> Unit,
 ) {
-    val icon = when (mode) {
-        NoiseMode.Anc -> Icons.Outlined.Hearing
-        NoiseMode.Ambient -> Icons.Outlined.NoiseAware
-        NoiseMode.Off -> Icons.Outlined.NoiseControlOff
+    val iconPainter: Painter = when (mode) {
+        NoiseMode.Anc -> painterResource(R.drawable.ic_mode_anc)
+        NoiseMode.Off -> rememberVectorPainter(Icons.Outlined.NoiseControlOff)
+        NoiseMode.Ambient -> rememberVectorPainter(Icons.Outlined.NoiseAware)
     }
 
     Surface(
@@ -752,7 +757,7 @@ private fun NoiseModeTile(
             verticalArrangement = Arrangement.Center,
         ) {
             Icon(
-                icon,
+                painter = iconPainter,
                 contentDescription = null,
                 modifier = Modifier.size(22.dp),
                 tint = if (selected) {
@@ -809,7 +814,7 @@ private fun SoundSection(
                         }
                     }
                     SummaryRow(
-                        icon = Icons.Outlined.Tune,
+                        icon = Icons.Outlined.Equalizer,
                         title = "Equalizer",
                         summary = eqSummary,
                         enabled = !busy && snapshot.currentEqId != null &&
@@ -822,7 +827,7 @@ private fun SoundSection(
                     if (needsDivider) RowDivider()
                     needsDivider = true
                     SummaryRow(
-                        icon = Icons.AutoMirrored.Outlined.VolumeUp,
+                        icon = Icons.Outlined.Speaker,
                         title = "Dynamic bass",
                         summary = dynamicBassSummary(dynamicBass, writableBassBands),
                         enabled = !busy,
@@ -835,7 +840,7 @@ private fun SoundSection(
                     if (needsDivider) RowDivider()
                     needsDivider = true
                     SettingRow(
-                        icon = Icons.Outlined.SurroundSound,
+                        icon = Icons.Outlined.SpatialAudio,
                         title = "Spatial audio",
                         summary = if (sw.enabled) "On" else "Off",
                         enabled = !busy,
@@ -852,7 +857,7 @@ private fun SoundSection(
                 snapshot.highVolumeEnabled?.let { enabled ->
                     if (needsDivider) RowDivider()
                     SettingRow(
-                        icon = Icons.Outlined.GraphicEq,
+                        icon = Icons.AutoMirrored.Outlined.VolumeUp,
                         title = "Volume enhancer",
                         summary = if (enabled) "On" else "Off",
                         enabled = !busy && snapshot.capabilities.supportsCommand(HeadsetProtocol.SET_HIGH_VOLUME_COMMAND),
@@ -933,7 +938,7 @@ private fun SettingsGroup(
         Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
             dualSwitch?.let { sw ->
                 SettingRow(
-                    icon = Icons.Outlined.SpeakerPhone,
+                    icon = Icons.Outlined.Devices,
                     title = "Dual-device",
                     summary = if (sw.enabled) "On" else "Off",
                     enabled = !busy,
@@ -956,7 +961,7 @@ private fun SettingsGroup(
             gameSwitch?.let { sw ->
                 if (dualSwitch != null) RowDivider()
                 SettingRow(
-                    icon = Icons.Outlined.Sensors,
+                    icon = Icons.Outlined.SportsEsports,
                     title = "Game mode",
                     summary = if (sw.enabled) "On" else "Off",
                     enabled = !busy,
@@ -973,7 +978,7 @@ private fun SettingsGroup(
             if (snapshot.capabilities.supportsCommand(HeadsetProtocol.SET_FIND_MODE_COMMAND)) {
                 if (dualSwitch != null || gameSwitch != null) RowDivider()
                 SettingRow(
-                    icon = Icons.Outlined.MusicNote,
+                    icon = Icons.Outlined.RingVolume,
                     title = "Find neckband",
                     summary = if (snapshot.findModeActive) "Playing a tone" else "Ready",
                     enabled = !busy,
@@ -1194,7 +1199,7 @@ private fun NoiseAdjustmentSheet(
             RowDivider()
             Spacer(Modifier.height(8.dp))
             SettingRow(
-                icon = Icons.Outlined.Hearing,
+                icon = Icons.Outlined.Air,
                 title = "Smart de-wind",
                 summary = if (sw.enabled) "On" else "Off",
                 enabled = enabled,
@@ -1571,7 +1576,7 @@ private fun DynamicBassSheet(
 
         dynamicBass?.let { sw ->
             SettingRow(
-                icon = Icons.AutoMirrored.Outlined.VolumeUp,
+                icon = Icons.Outlined.Speaker,
                 title = "Dynamic bass",
                 summary = if (sw.enabled) "On" else "Off",
                 enabled = enabled,
