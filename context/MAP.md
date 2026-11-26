@@ -32,16 +32,17 @@ graph TD
 
 | Path | Responsibility |
 | --- | --- |
-| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:147` | Root state rendering and modal-sheet coordination. |
-| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:348` | Compact device, battery, and connection header. |
-| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:630` | Sound group with one-tap noise modes, Dynamic bass, Spatial audio, and Volume enhancer. |
-| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:921` | Device settings group ordered by expected use. |
-| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:1164` | ANC level, Smart de-wind, and button cycling sheet. |
-| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:1402` | Hardware/custom EQ sheet with curated suggestions. |
-| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:1546` | Dynamic bass sheet. |
-| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:1663` | Shared button-assignment sheet and action picker. |
-| `app/src/main/java/app/realme/unlink/ui/UnlinkTheme.kt:18` | Dynamic Material 3 Expressive theme and bundled Google Sans Flex typography. |
-| `app/src/main/res/font/google_sans_flex.ttf:1` | Local variable font asset. |
+| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:186` | Root state rendering, pinned top bar, wavy busy indicator, and modal-sheet coordination. |
+| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:493` | Compact device, battery pill, and connection header. |
+| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:795` | Noise control card with connected button group and Adjust action. |
+| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:946` | Sound segmented list group (Equalizer, Dynamic bass, Spatial audio, Volume enhancer). |
+| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:1110` | Device settings segmented list group ordered by expected use. |
+| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:1366` | ANC level, Smart de-wind, and connected button-cycling sheet. |
+| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:1618` | Hardware/custom EQ sheet with curated suggestions and stateful sliders. |
+| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:1842` | Dynamic bass sheet with stateful band sliders. |
+| `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:1982` | Shared button-assignment sheet and animated action picker. |
+| `app/src/main/java/app/realme/unlink/ui/UnlinkTheme.kt:40` | Dynamic Material 3 Expressive theme and bundled variable Google Sans Flex typography. |
+| `app/src/main/res/font/google_sans_flex.ttf:1` | Local variable font asset (`GoogleSansFlex[ROND,opsz,slnt,wdth,wght].ttf`). |
 
 ### State and Transport
 
