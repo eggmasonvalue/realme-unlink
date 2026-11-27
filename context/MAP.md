@@ -23,9 +23,10 @@ graph TD
 
 | Path | Responsibility |
 | --- | --- |
-| `app/src/main/AndroidManifest.xml:1` | API-37 app, Bluetooth permissions, internal activity, and Quick Settings tile. |
+| `app/src/main/AndroidManifest.xml:1` | API-37 app, Bluetooth permissions, internal activity, opt-in launcher alias, and Quick Settings tile. |
 | `app/src/debug/AndroidManifest.xml:1` | Debug-only exported activity for explicit ADB diagnostics. |
-| `app/src/main/java/app/realme/unlink/MainActivity.kt:34` | Permission, lifecycle, controller, and Compose host. |
+| `app/src/main/java/app/realme/unlink/MainActivity.kt:21` | Permission, lifecycle, controller, launcher-icon toggle, and Compose host. |
+| `app/src/main/java/app/realme/unlink/LauncherIconToggle.kt:7` | Opt-in app drawer launcher alias state via `PackageManager`. |
 | `app/src/main/java/app/realme/unlink/UnlinkTileService.kt:12` | Quick Settings launch entrypoint. |
 
 ### UI

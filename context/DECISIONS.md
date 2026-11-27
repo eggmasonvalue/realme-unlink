@@ -40,13 +40,13 @@
 
 **Status:** Active.
 
-## Quick Settings tile as the sole entrypoint
+## Quick Settings tile as the default entrypoint with opt-in launcher alias
 
-**Context:** The app is a secondary hardware-control surface rather than a general launcher destination.
+**Context:** The app is primarily a secondary hardware-control surface rather than a general launcher destination, though some users prefer an app drawer icon.
 
-**Decision:** Keep `MainActivity` internal without a launcher intent filter. Launch from `UnlinkTileService`; Android owns tile long-press behavior.
+**Decision:** Keep `MainActivity` internal without a launcher intent filter and launch by default from `UnlinkTileService`; Android owns tile long-press behavior. Provide a disabled-by-default `.LauncherAlias` `<activity-alias>` toggled via `PackageManager.setComponentEnabledSetting` from a single-item overflow menu in the top bar.
 
-**Tradeoff:** Initial setup requires adding the tile from Android's Quick Settings editor.
+**Tradeoff:** Initial setup still starts from Android's Quick Settings editor, while users who want a launcher icon can opt in without adding preferences storage or cluttering the hardware dashboard.
 
 **Status:** Active.
 

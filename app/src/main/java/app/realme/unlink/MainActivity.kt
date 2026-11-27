@@ -24,6 +24,7 @@ class MainActivity : ComponentActivity() {
     private var connectionState by mutableStateOf<ConnectionState>(ConnectionState.Checking)
     private var busy by mutableStateOf(false)
     private var snackbarMessage by mutableStateOf<String?>(null)
+    private var launcherIconEnabled by mutableStateOf(false)
     private var diagnosticMode = false
 
     private val permissionLauncher = registerForActivityResult(
@@ -45,6 +46,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         diagnosticMode = Diagnostics.isDiagnosticIntent(intent)
+        launcherIconEnabled = LauncherIconToggle.isEnabled(this)
         controller = HeadsetController(applicationContext)
         controller.setListener { event ->
             runOnUiThread {
@@ -58,6 +60,7 @@ class MainActivity : ComponentActivity() {
 
         lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onStart(owner: LifecycleOwner) {
+                launcherIconEnabled = LauncherIconToggle.isEnabled(this@MainActivity)
                 if (diagnosticMode) {
                     Log.i(TAG, "onStart -> diagnostic owns headset transport")
                     return
@@ -107,6 +110,16 @@ class MainActivity : ComponentActivity() {
                     onFindMode = controller::setFindMode,
                     onVolumeEnhancer = controller::setHighVolume,
                     onNoiseCycle = controller::setNoiseCycle,
+                    launcherIconEnabled = launcherIconEnabled,
+                    onToggleLauncherIcon = { enabled ->
+                        LauncherIconToggle.setEnabled(this, enabled)
+                        launcherIconEnabled = LauncherIconToggle.isEnabled(this)
+                        snackbarMessage = if (launcherIconEnabled) {
+                            "App icon added to app drawer"
+                        } else {
+                            "App icon hidden from app drawer"
+                        }
+                    },
                 )
             }
         }
