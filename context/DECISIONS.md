@@ -78,8 +78,8 @@
 
 Confirmed values:
 
-- Noise: Off `1`, Transparency `2`, Mild `4`, Max `8`, Moderate `16`, Smart `32`.
-- ANC cycle modes: ANC and Off `3`, ANC and Transparency `9`, Transparency and Off `10`, All modes `11` via `0x010C`/`0x0404` (action `2`).
+- Noise: Off `1`, Ambient `2`, Mild `4`, Max `8`, Moderate `16`, Smart `32`.
+- ANC cycle modes: ANC and Off `3`, ANC and Ambient `9`, Ambient and Off `10`, All modes `11` via `0x010C`/`0x0404` (action `2`).
 - MFB functions: None `0`, Play/Pause `1`, Voice Assistant `4`, Previous `5`, Next `6`, Game mode `17`.
 - Switches: Game mode `6`, Auto answer `8`, Smart de-wind `26`, Spatial Audio `27`, Dynamic bass `29`.
 - Dynamic bass bands: Low `1`, Mid `2`, High `3`.
@@ -110,7 +110,7 @@ Volume enhancer, ANC-button mode-list cycling, and Spatial Audio were initially 
 **Decision:** Reverse engineer the official realme Link client bytecode and model assets (model ID `051412` for RMA2412) to derive authoritative wire schemas:
 
 1. Volume Enhancer (`ITEM_SOUND_ENHANCE`): Query `0x0110` (response `0x8110`), write `0x0407` with payload `[0x01]` (on) / `[0x00]` (off). Command `0x0107` is Upgrade Capability and does not configure audio gain.
-2. ANC Button Mode Cycling: Configured via action `2` of `0x010C` (GET `[0x02, 0x01]`) and `0x0404` (SET `[0x02, 0x01, cycleValue]`). Wire cycle values: ANC and Off (`3`), ANC and Transparency (`9`), Transparency and Off (`10`), All modes (`11`).
+2. ANC Button Mode Cycling: Configured via action `2` of `0x010C` (GET `[0x02, 0x01]`) and `0x0404` (SET `[0x02, 0x01, cycleValue]`). Wire cycle values: ANC and Off (`3`), ANC and Ambient (`9`), Ambient and Off (`10`), All modes (`11`).
 3. Preset EQ IDs: Resolved IDs 0..3 (Nature Balance `0`, Bass Boost `1`, Clear Vocals `2`, Clear Bass `3`) alongside Custom `4`. Allowed direct selection of all 4 presets.
 4. Spatial Audio: Identified as standard switch feature ID `27` (`0x1B`) using standard switch query `0x010D` and write `0x0403`, rejecting speculative custom command `0x041E`.
 5. Intentional feature exclusions:

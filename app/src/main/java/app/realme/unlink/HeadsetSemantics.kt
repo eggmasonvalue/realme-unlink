@@ -30,7 +30,7 @@ object HeadsetSemantics {
     fun noiseValueLabel(action: Int, value: Int): String? = when (action) {
         1 -> when (value) {
             1 -> "Off"
-            2 -> "Transparency"
+            2 -> "Ambient"
             4 -> "Mild noise cancellation"
             8 -> "Strong noise cancellation"
             16 -> "Moderate noise cancellation"
@@ -40,9 +40,9 @@ object HeadsetSemantics {
 
         2 -> when (value) {
             3 -> "Noise cancellation and Off"
-            9 -> "Noise cancellation and Transparency"
-            10 -> "Transparency and Off"
-            11 -> "Noise cancellation, Transparency, and Off"
+            9 -> "Noise cancellation and Ambient"
+            10 -> "Ambient and Off"
+            11 -> "Noise cancellation, Ambient, and Off"
             else -> null
         }
 

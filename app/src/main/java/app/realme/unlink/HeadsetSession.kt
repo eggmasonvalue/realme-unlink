@@ -74,7 +74,7 @@ class HeadsetSession private constructor(
                     val connectedSocket = candidate
                         ?: error("Headset socket was not created")
                     return HeadsetSession(
-                        deviceName = device.name ?: "realme headset",
+                        deviceName = DeviceSupport.displayName(device),
                         service = label,
                         input = input,
                         output = output,

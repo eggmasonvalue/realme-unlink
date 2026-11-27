@@ -8,7 +8,7 @@ object NoiseLabels {
 
     val modes: List<Mode> = listOf(
         Mode(1, "Off", "Off"),
-        Mode(2, "Transparency", "Transparency"),
+        Mode(2, "Ambient", "Ambient"),
         Mode(4, "Mild", "Mild noise cancellation"),
         Mode(16, "Moderate", "Moderate noise cancellation"),
         Mode(8, "Strong", "Strong noise cancellation"),

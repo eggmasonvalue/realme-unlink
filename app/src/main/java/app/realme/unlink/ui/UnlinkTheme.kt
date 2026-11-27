@@ -12,6 +12,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import app.realme.unlink.R
 
 private fun googleSansFlex(weight: FontWeight): Font = Font(
@@ -34,7 +35,18 @@ private val GoogleSansFlex = FontFamily(
 @Suppress("unused")
 private val GoogleSansFlexLicense = R.raw.google_sans_flex_ofl
 
-private val UnlinkTypography = Typography(GoogleSansFlex)
+private val UnlinkTypography = Typography(GoogleSansFlex).let { base ->
+    base.copy(
+        titleMediumEmphasized = base.titleMediumEmphasized.copy(
+            fontSize = 17.sp,
+            lineHeight = 24.sp,
+            fontWeight = FontWeight.SemiBold,
+        ),
+        labelLargeEmphasized = base.labelLargeEmphasized.copy(
+            fontWeight = FontWeight.SemiBold,
+        ),
+    )
+}
 
 @Composable
 fun UnlinkTheme(content: @Composable () -> Unit) {

@@ -78,8 +78,8 @@ graph TD
 
 ## Validated Protocol State
 
-- Noise values: Off `1`, Transparency `2`, Mild `4`, Max `8`, Moderate `16`, Smart `32`.
-- ANC cycle modes: ANC and Off `3`, ANC and Transparency `9`, Transparency and Off `10`, All modes `11` via `0x010C`/`0x0404` (action `2`).
+- Noise values: Off `1`, Ambient `2`, Mild `4`, Max `8`, Moderate `16`, Smart `32`.
+- ANC cycle modes: ANC and Off `3`, ANC and Ambient `9`, Ambient and Off `10`, All modes `11` via `0x010C`/`0x0404` (action `2`).
 - MFB functions: None `0`, Play/Pause `1`, Voice Assistant `4`, Previous `5`, Next `6`, Game mode `17`.
 - Switches: Game mode `6`, Auto answer `8`, dual-device `17`, Smart de-wind `26`, Spatial Audio `27`, Dynamic bass `29`.
 - Dynamic bass bands: Low type `1`, Mid type `2`, High type `3`; baseline is `0/0/0`.
