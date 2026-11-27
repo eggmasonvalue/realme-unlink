@@ -167,7 +167,7 @@ private enum class ScreenKind {
 private enum class NoiseMode(val value: Int, val label: String) {
     Anc(8, "ANC"),
     Off(1, "Off"),
-    Ambient(2, "Transparency"),
+    Ambient(2, "Ambient"),
 }
 
 private data class ButtonChoice(
@@ -570,27 +570,12 @@ private fun DeviceHeader(snapshot: HeadsetSnapshot) {
                 }
             }
             Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    snapshot.deviceName,
-                    style = MaterialTheme.typography.titleMediumEmphasized,
-                    maxLines = 2,
-                )
-                Spacer(Modifier.height(2.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        Modifier
-                            .size(8.dp)
-                            .background(MaterialTheme.colorScheme.primary, CircleShape),
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        "Connected",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
+            Text(
+                snapshot.deviceName,
+                style = MaterialTheme.typography.titleMediumEmphasized,
+                maxLines = 2,
+                modifier = Modifier.weight(1f),
+            )
 
             snapshot.primaryBatteryPercent?.let { percentage ->
                 Surface(
@@ -882,25 +867,39 @@ private fun NoiseControlCard(
                     tint = MaterialTheme.colorScheme.secondary,
                 )
                 Spacer(Modifier.width(16.dp))
-                Text(
-                    "Noise control",
-                    style = MaterialTheme.typography.titleMediumEmphasized,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f),
-                )
-                FilledTonalButton(
+                val modeSummary = when (noiseValue) {
+                    1 -> "Off"
+                    2 -> "Ambient"
+                    4 -> "ANC · Mild"
+                    8 -> "ANC · Max"
+                    16 -> "ANC · Moderate"
+                    32 -> "ANC · Smart"
+                    else -> null
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "Noise control",
+                        style = MaterialTheme.typography.bodyLargeEmphasized,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    if (modeSummary != null) {
+                        Text(
+                            modeSummary,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                IconButton(
                     onClick = onAdjust,
                     enabled = enabled,
-                    shapes = ButtonDefaults.shapes(),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                    colors = IconButtonDefaults.filledTonalIconButtonColors(),
                 ) {
                     Icon(
                         Icons.Rounded.Tune,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
+                        contentDescription = "Adjust noise control",
+                        modifier = Modifier.size(20.dp),
                     )
-                    Spacer(Modifier.width(6.dp))
-                    Text("Adjust", style = MaterialTheme.typography.labelLargeEmphasized)
                 }
             }
 
@@ -944,33 +943,17 @@ private fun NoiseControlCard(
                             checkedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                             checkedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                         ),
-                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 10.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp),
                         modifier = Modifier
                             .weight(1f)
-                            .heightIn(min = 64.dp)
+                            .heightIn(min = 48.dp)
                             .semantics { role = Role.RadioButton },
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center,
-                        ) {
-                            Icon(
-                                painter = iconPainter,
-                                contentDescription = null,
-                                modifier = Modifier.size(22.dp),
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                mode.label,
-                                style = if (selected) {
-                                    MaterialTheme.typography.labelMediumEmphasized
-                                } else {
-                                    MaterialTheme.typography.labelMedium
-                                },
-                                textAlign = TextAlign.Center,
-                                maxLines = 1,
-                            )
-                        }
+                        Icon(
+                            painter = iconPainter,
+                            contentDescription = mode.label,
+                            modifier = Modifier.size(24.dp),
+                        )
                     }
                 }
             }
@@ -1540,7 +1523,7 @@ private fun NoiseAdjustmentSheet(
                         onNoiseCycle(11)
                     }
                 },
-                Triple("Transparency", hasTransparency) {
+                Triple("Ambient", hasTransparency) {
                     if (hasTransparency && totalActive > 2) {
                         onNoiseCycle(3)
                     } else if (!hasTransparency) {
@@ -1577,23 +1560,11 @@ private fun NoiseAdjustmentSheet(
                             checkedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                         ),
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp),
-                        modifier = Modifier.weight(if (label == "Transparency") 1.35f else 0.9f),
+                        modifier = Modifier.weight(1f),
                     ) {
-                        if (checked) {
-                            Icon(
-                                Icons.Rounded.Check,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                            )
-                            Spacer(Modifier.width(4.dp))
-                        }
                         Text(
                             label,
-                            style = if (checked) {
-                                MaterialTheme.typography.labelMediumEmphasized
-                            } else {
-                                MaterialTheme.typography.labelMedium
-                            },
+                            style = MaterialTheme.typography.labelLarge,
                             maxLines = 1,
                         )
                     }
@@ -1989,9 +1960,9 @@ private fun BassBandSlider(
     }
     val pendingValue = sliderState.value.roundToInt()
     val (label, description) = when (band.type) {
-        1 -> "Low freq" to "Rumble & sub-bass"
-        2 -> "Med freq" to "Punch & kick drums"
-        3 -> "High freq" to "Bass guitar & lower warmth"
+        1 -> "Low" to "Rumble & sub-bass"
+        2 -> "Mid" to "Punch & kick drums"
+        3 -> "High" to "Bass guitar & lower warmth"
         else -> (band.type?.let(HeadsetSemantics::bassBandLabel) ?: "Bass") to null
     }
     val dbText = if (pendingValue > 0) "+$pendingValue dB" else "$pendingValue dB"

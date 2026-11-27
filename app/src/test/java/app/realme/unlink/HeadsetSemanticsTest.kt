@@ -12,7 +12,7 @@ class HeadsetSemanticsTest {
             HeadsetSemantics.noiseValueLabel(action = 1, value = 8),
         )
         assertEquals(
-            "Transparency",
+            "Ambient",
             HeadsetSemantics.noiseValueLabel(action = 1, value = 2),
         )
         assertEquals(
@@ -22,9 +22,9 @@ class HeadsetSemanticsTest {
         assertNull(HeadsetSemantics.noiseValueLabel(action = 1, value = 99))
 
         assertEquals("Noise cancellation and Off", HeadsetSemantics.noiseValueLabel(action = 2, value = 3))
-        assertEquals("Noise cancellation and Transparency", HeadsetSemantics.noiseValueLabel(action = 2, value = 9))
-        assertEquals("Transparency and Off", HeadsetSemantics.noiseValueLabel(action = 2, value = 10))
-        assertEquals("Noise cancellation, Transparency, and Off", HeadsetSemantics.noiseValueLabel(action = 2, value = 11))
+        assertEquals("Noise cancellation and Ambient", HeadsetSemantics.noiseValueLabel(action = 2, value = 9))
+        assertEquals("Ambient and Off", HeadsetSemantics.noiseValueLabel(action = 2, value = 10))
+        assertEquals("Noise cancellation, Ambient, and Off", HeadsetSemantics.noiseValueLabel(action = 2, value = 11))
         assertNull(HeadsetSemantics.noiseValueLabel(action = 2, value = 99))
     }
 

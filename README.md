@@ -3,7 +3,7 @@
 A local, account-free companion for **realme Buds Wireless 5 ANC (RMA2412)** on Pixel 10 / Android 17 (API 37).
 
 <p align="center">
-  <img src="docs/screenshots/dashboard.png" alt="Realme Unlink Dashboard" width="360" />
+  <img src="docs/screenshots/demo.webp" alt="Realme Unlink Material 3 Expressive Demo" width="360" />
 </p>
 
 - No cloud dependency, telemetry, account, ads, or `INTERNET` permission.
@@ -13,9 +13,9 @@ A local, account-free companion for **realme Buds Wireless 5 ANC (RMA2412)** on 
 
 ## Features
 
-- One-tap ANC, Transparency, and Off modes.
+- One-tap ANC, Ambient, and Off modes.
 - ANC levels: Smart, Max, Moderate, and Mild; Smart de-wind control.
-- ANC button mode cycling configuration (ANC ↔ Off, ANC ↔ Transparency, Transparency ↔ Off, or all three).
+- ANC button mode cycling configuration (ANC ↔ Off, ANC ↔ Ambient, Ambient ↔ Off, or all three).
 - Hardware EQ profiles (Nature Balance, Bass Boost, Clear Vocals, Clear Bass) and custom six-band EQ with locally curated suggestions.
 - Volume enhancer toggle.
 - Spatial Audio toggle.

@@ -14,5 +14,6 @@ object DeviceSupport {
         name?.trim()?.equals(DISPLAY_NAME, ignoreCase = true) == true
 
     @SuppressLint("MissingPermission")
-    fun displayName(device: BluetoothDevice): String = device.name ?: DISPLAY_NAME
+    fun displayName(device: BluetoothDevice): String =
+        device.alias?.takeIf { it.isNotBlank() } ?: device.name ?: DISPLAY_NAME
 }
