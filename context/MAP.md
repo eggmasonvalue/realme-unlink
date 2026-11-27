@@ -42,6 +42,7 @@ graph TD
 | `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:1618` | Hardware/custom EQ sheet with curated suggestions and stateful sliders. |
 | `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:1842` | Dynamic bass sheet with stateful band sliders. |
 | `app/src/main/java/app/realme/unlink/ui/UnlinkApp.kt:1982` | Shared button-assignment sheet and animated action picker. |
+| `app/src/main/java/app/realme/unlink/ui/UnlinkHaptics.kt:16` | Semantic haptic feedback wrapper backed by Android 17 `HapticFeedbackType` primitives. |
 | `app/src/main/java/app/realme/unlink/ui/UnlinkTheme.kt:40` | Dynamic Material 3 Expressive theme and bundled variable Google Sans Flex typography. |
 | `app/src/main/res/font/google_sans_flex.ttf:1` | Local variable font asset (`GoogleSansFlex[ROND,opsz,slnt,wdth,wght].ttf`). |
 

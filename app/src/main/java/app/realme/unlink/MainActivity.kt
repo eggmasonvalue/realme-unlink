@@ -24,6 +24,7 @@ class MainActivity : ComponentActivity() {
     private var connectionState by mutableStateOf<ConnectionState>(ConnectionState.Checking)
     private var busy by mutableStateOf(false)
     private var snackbarMessage by mutableStateOf<String?>(null)
+    private var snackbarIsError by mutableStateOf(false)
     private var launcherIconEnabled by mutableStateOf(false)
     private var diagnosticMode = false
 
@@ -52,7 +53,10 @@ class MainActivity : ComponentActivity() {
             runOnUiThread {
                 when (event) {
                     is HeadsetController.UiEvent.State -> connectionState = event.state
-                    is HeadsetController.UiEvent.Message -> snackbarMessage = event.text
+                    is HeadsetController.UiEvent.Message -> {
+                        snackbarIsError = event.isError
+                        snackbarMessage = event.text
+                    }
                     is HeadsetController.UiEvent.Busy -> busy = event.busy
                 }
             }
@@ -92,7 +96,11 @@ class MainActivity : ComponentActivity() {
                     state = connectionState,
                     busy = busy,
                     snackbarMessage = snackbarMessage,
-                    onSnackbarConsumed = { snackbarMessage = null },
+                    snackbarIsError = snackbarIsError,
+                    onSnackbarConsumed = {
+                        snackbarMessage = null
+                        snackbarIsError = false
+                    },
                     onRefresh = {
                         if (!hasBluetoothPermission()) {
                             requestBluetoothPermission()
@@ -114,6 +122,7 @@ class MainActivity : ComponentActivity() {
                     onToggleLauncherIcon = { enabled ->
                         LauncherIconToggle.setEnabled(this, enabled)
                         launcherIconEnabled = LauncherIconToggle.isEnabled(this)
+                        snackbarIsError = false
                         snackbarMessage = if (launcherIconEnabled) {
                             "App icon added to app drawer"
                         } else {
