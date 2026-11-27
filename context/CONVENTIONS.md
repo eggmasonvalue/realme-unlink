@@ -5,7 +5,7 @@
 - Target Android 17 / API 37 only.
 - Match only `realme Buds Wireless 5 ANC`.
 - Keep `INTERNET`, foreground-service, boot, and wake-lock permissions absent.
-- Keep the Quick Settings tile as the sole production entrypoint.
+- Keep the Quick Settings tile as the default entrypoint; keep the opt-in launcher alias disabled by default.
 
 ## Verification
 

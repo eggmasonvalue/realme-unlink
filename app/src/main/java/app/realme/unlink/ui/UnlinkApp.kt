@@ -38,6 +38,7 @@ import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.outlined.NoiseAware
 import androidx.compose.material.icons.outlined.NoiseControlOff
 import androidx.compose.material.icons.rounded.Air
+import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.Block
 import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.BluetoothDisabled
@@ -50,6 +51,7 @@ import androidx.compose.material.icons.rounded.Equalizer
 import androidx.compose.material.icons.rounded.Headphones
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Mic
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.NoiseAware
 import androidx.compose.material.icons.rounded.NoiseControlOff
 import androidx.compose.material.icons.rounded.PlayArrow
@@ -62,6 +64,7 @@ import androidx.compose.material.icons.rounded.Speaker
 import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.material.icons.rounded.TouchApp
 import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -69,6 +72,8 @@ import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ContainedLoadingIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
@@ -199,10 +204,13 @@ fun UnlinkApp(
     onFindMode: (Boolean) -> Unit,
     onVolumeEnhancer: (Boolean) -> Unit = {},
     onNoiseCycle: (Int) -> Unit = {},
+    launcherIconEnabled: Boolean = false,
+    onToggleLauncherIcon: (Boolean) -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     var sheet by remember { mutableStateOf(SheetKind.None) }
+    var menuExpanded by remember { mutableStateOf(false) }
     var selectedButtonMapping by remember {
         mutableStateOf<HeadsetCapabilityDiscovery.KeyMapping?>(null)
     }
@@ -274,6 +282,52 @@ fun UnlinkApp(
                             shapes = IconButtonDefaults.shapes(),
                         ) {
                             Icon(Icons.Rounded.Refresh, contentDescription = "Refresh device data")
+                        }
+                    }
+                    Box {
+                        TooltipBox(
+                            positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+                                TooltipAnchorPosition.Below,
+                            ),
+                            tooltip = { PlainTooltip { Text("More options") } },
+                            state = rememberTooltipState(),
+                        ) {
+                            IconButton(
+                                onClick = { menuExpanded = true },
+                                shapes = IconButtonDefaults.shapes(),
+                            ) {
+                                Icon(Icons.Rounded.MoreVert, contentDescription = "More options")
+                            }
+                        }
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            onDismissRequest = { menuExpanded = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        if (launcherIconEnabled) {
+                                            "Hide from app drawer"
+                                        } else {
+                                            "Show in app drawer"
+                                        },
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = if (launcherIconEnabled) {
+                                            Icons.Rounded.VisibilityOff
+                                        } else {
+                                            Icons.Rounded.Apps
+                                        },
+                                        contentDescription = null,
+                                    )
+                                },
+                                onClick = {
+                                    menuExpanded = false
+                                    onToggleLauncherIcon(!launcherIconEnabled)
+                                },
+                            )
                         }
                     }
                 },

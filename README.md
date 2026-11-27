@@ -7,7 +7,7 @@ A local, account-free companion for **realme Buds Wireless 5 ANC (RMA2412)** on 
 </p>
 
 - No cloud dependency, telemetry, account, ads, or `INTERNET` permission.
-- Quick Settings tile entrypoint; no launcher icon.
+- Quick Settings tile entrypoint by default; opt-in app drawer icon via the top-bar menu.
 - Foreground-only Bluetooth Classic RFCOMM control session.
 - Compact Material 3 Expressive UI with dynamic color and bundled Google Sans Flex.
 

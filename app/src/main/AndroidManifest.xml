@@ -12,12 +12,27 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <!-- Internal QS-tile target only: no launcher or externally invokable activity. -->
+        <!-- Internal QS-tile target; opt-in launcher access is exposed via LauncherAlias. -->
         <activity
             android:name=".MainActivity"
             android:exported="false"
             android:launchMode="singleTop"
             android:theme="@style/AppTheme" />
+
+        <!-- Disabled by default so the QS tile stays the primary entrypoint unless opted in. -->
+        <activity-alias
+            android:name=".LauncherAlias"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
 
         <service
             android:name=".UnlinkTileService"
