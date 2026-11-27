@@ -118,9 +118,11 @@ import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.Painter
@@ -146,6 +148,7 @@ import app.realme.unlink.HeadsetSnapshot
 import app.realme.unlink.R
 import app.realme.unlink.SwitchCatalog
 import kotlin.math.roundToInt
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 private enum class SheetKind {
     None,
@@ -192,6 +195,7 @@ fun UnlinkApp(
     state: ConnectionState,
     busy: Boolean,
     snackbarMessage: String?,
+    snackbarIsError: Boolean = false,
     onSnackbarConsumed: () -> Unit,
     onRefresh: () -> Unit,
     onRequestPermission: () -> Unit,
@@ -207,6 +211,7 @@ fun UnlinkApp(
     launcherIconEnabled: Boolean = false,
     onToggleLauncherIcon: (Boolean) -> Unit = {},
 ) {
+    val haptics = rememberUnlinkHaptics()
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     var sheet by remember { mutableStateOf(SheetKind.None) }
@@ -227,6 +232,9 @@ fun UnlinkApp(
 
     LaunchedEffect(snackbarMessage) {
         val message = snackbarMessage ?: return@LaunchedEffect
+        if (snackbarIsError) {
+            haptics.reject()
+        }
         snackbarHostState.showSnackbar(message)
         onSnackbarConsumed()
     }
@@ -277,7 +285,10 @@ fun UnlinkApp(
                         state = rememberTooltipState(),
                     ) {
                         IconButton(
-                            onClick = onRefresh,
+                            onClick = {
+                                haptics.click()
+                                onRefresh()
+                            },
                             enabled = !busy,
                             shapes = IconButtonDefaults.shapes(),
                         ) {
@@ -293,7 +304,10 @@ fun UnlinkApp(
                             state = rememberTooltipState(),
                         ) {
                             IconButton(
-                                onClick = { menuExpanded = true },
+                                onClick = {
+                                    haptics.click()
+                                    menuExpanded = true
+                                },
                                 shapes = IconButtonDefaults.shapes(),
                             ) {
                                 Icon(Icons.Rounded.MoreVert, contentDescription = "More options")
@@ -324,8 +338,10 @@ fun UnlinkApp(
                                     )
                                 },
                                 onClick = {
+                                    val next = !launcherIconEnabled
+                                    haptics.toggle(next)
                                     menuExpanded = false
-                                    onToggleLauncherIcon(!launcherIconEnabled)
+                                    onToggleLauncherIcon(next)
                                 },
                             )
                         }
@@ -642,6 +658,7 @@ private fun StatusPane(
     openBluetoothSettings: Boolean = false,
 ) {
     val context = LocalContext.current
+    val haptics = rememberUnlinkHaptics()
     Column(
         Modifier
             .fillMaxSize()
@@ -680,6 +697,7 @@ private fun StatusPane(
             Spacer(Modifier.height(20.dp))
             Button(
                 onClick = {
+                    haptics.click()
                     if (openBluetoothSettings) {
                         context.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
                     } else {
@@ -729,7 +747,20 @@ private fun ConnectedDashboard(
         snapshot.buttonMappings.isNotEmpty() ||
         autoAnswer != null
 
+    val haptics = rememberUnlinkHaptics()
     val pullToRefreshState = rememberPullToRefreshState()
+    var thresholdReached by remember { mutableStateOf(false) }
+
+    LaunchedEffect(pullToRefreshState) {
+        snapshotFlow { pullToRefreshState.distanceFraction >= 1f }
+            .distinctUntilChanged()
+            .collect { reached ->
+                if (reached && !pullRefreshing && !thresholdReached) {
+                    haptics.thresholdActivate()
+                }
+                thresholdReached = reached
+            }
+    }
 
     PullToRefreshBox(
         isRefreshing = pullRefreshing,
@@ -837,6 +868,7 @@ private fun NoiseControlCard(
     onSelect: (Int) -> Unit,
     onAdjust: () -> Unit,
 ) {
+    val haptics = rememberUnlinkHaptics()
     val selectedMode = when (noiseValue) {
         1 -> NoiseMode.Off
         2 -> NoiseMode.Ambient
@@ -891,7 +923,10 @@ private fun NoiseControlCard(
                     }
                 }
                 IconButton(
-                    onClick = onAdjust,
+                    onClick = {
+                        haptics.click()
+                        onAdjust()
+                    },
                     enabled = enabled,
                     colors = IconButtonDefaults.filledTonalIconButtonColors(),
                 ) {
@@ -929,7 +964,10 @@ private fun NoiseControlCard(
                                 NoiseMode.Ambient -> NoiseMode.Ambient.value
                                 NoiseMode.Off -> NoiseMode.Off.value
                             }
-                            if (target != noiseValue) onSelect(target)
+                            if (target != noiseValue) {
+                                haptics.select()
+                                onSelect(target)
+                            }
                         },
                         enabled = enabled,
                         shapes = when (index) {
@@ -1053,6 +1091,7 @@ private fun SoundSection(
 
     if (items.isEmpty()) return
 
+    val haptics = rememberUnlinkHaptics()
     val colors = dashboardSegmentedColors()
     val switchColors = dashboardSwitchSegmentedColors()
     Column(
@@ -1065,7 +1104,10 @@ private fun SoundSection(
             val shapes = ListItemDefaults.segmentedShapes(index = index, count = items.size)
             when (item) {
                 is SoundItem.Navigation -> SegmentedListItem(
-                    onClick = item.onClick,
+                    onClick = {
+                        haptics.click()
+                        item.onClick()
+                    },
                     shapes = shapes,
                     colors = colors,
                     enabled = item.enabled,
@@ -1095,7 +1137,10 @@ private fun SoundSection(
 
                 is SoundItem.Toggle -> SegmentedListItem(
                     checked = item.checked,
-                    onCheckedChange = item.onCheckedChange,
+                    onCheckedChange = { checked ->
+                        haptics.toggle(checked)
+                        item.onCheckedChange(checked)
+                    },
                     shapes = shapes.copy(selectedShape = shapes.shape),
                     colors = switchColors,
                     enabled = item.enabled,
@@ -1168,6 +1213,7 @@ private fun SettingsGroup(
 
     if (items.isEmpty()) return
 
+    val haptics = rememberUnlinkHaptics()
     val colors = dashboardSegmentedColors()
     val switchColors = dashboardSwitchSegmentedColors()
     val spatialSpec = MaterialTheme.motionScheme.defaultSpatialSpec<androidx.compose.ui.unit.IntSize>()
@@ -1184,7 +1230,10 @@ private fun SettingsGroup(
             when (item) {
                 is SettingsItem.DualDevice -> SegmentedListItem(
                     checked = item.sw.enabled,
-                    onCheckedChange = { onSwitch(item.sw.id, it) },
+                    onCheckedChange = { checked ->
+                        haptics.toggle(checked)
+                        onSwitch(item.sw.id, checked)
+                    },
                     shapes = shapes.copy(selectedShape = shapes.shape),
                     colors = switchColors,
                     enabled = !busy,
@@ -1227,7 +1276,10 @@ private fun SettingsGroup(
 
                 is SettingsItem.SwitchItem -> SegmentedListItem(
                     checked = item.sw.enabled,
-                    onCheckedChange = { onSwitch(item.sw.id, it) },
+                    onCheckedChange = { checked ->
+                        haptics.toggle(checked)
+                        onSwitch(item.sw.id, checked)
+                    },
                     shapes = shapes.copy(selectedShape = shapes.shape),
                     colors = switchColors,
                     enabled = !busy,
@@ -1257,7 +1309,11 @@ private fun SettingsGroup(
                 }
 
                 SettingsItem.FindNeckband -> SegmentedListItem(
-                    onClick = { onFindMode(!snapshot.findModeActive) },
+                    onClick = {
+                        val next = !snapshot.findModeActive
+                        haptics.toggle(next)
+                        onFindMode(next)
+                    },
                     shapes = shapes,
                     colors = colors,
                     enabled = !busy,
@@ -1282,7 +1338,10 @@ private fun SettingsGroup(
                     trailingContent = {
                         FilledTonalToggleButton(
                             checked = snapshot.findModeActive,
-                            onCheckedChange = onFindMode,
+                            onCheckedChange = { next ->
+                                haptics.toggle(next)
+                                onFindMode(next)
+                            },
                             enabled = !busy,
                             colors = FilledTonalToggleButtonDefaults.colors(
                                 checkedContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
@@ -1300,7 +1359,10 @@ private fun SettingsGroup(
                 }
 
                 SettingsItem.ButtonControls -> SegmentedListItem(
-                    onClick = onOpenButtons,
+                    onClick = {
+                        haptics.click()
+                        onOpenButtons()
+                    },
                     shapes = shapes,
                     colors = colors,
                     enabled = !busy,
@@ -1411,6 +1473,7 @@ private fun NoiseAdjustmentSheet(
     val windNoise = snapshot.switches.firstOrNull { it.id == 26 }
     val cycleValue = snapshot.noiseCycle?.value
     val segmentedColors = sheetSegmentedColors()
+    val haptics = rememberUnlinkHaptics()
 
     SheetColumn {
         SheetTitle(title = "Noise control", subtitle = "ANC tuning and button cycling")
@@ -1436,7 +1499,12 @@ private fun NoiseAdjustmentSheet(
                 val selected = noiseValue == value
                 SegmentedListItem(
                     selected = selected,
-                    onClick = { if (noiseValue != value) onNoiseValue(value) },
+                    onClick = {
+                        if (noiseValue != value) {
+                            haptics.select()
+                            onNoiseValue(value)
+                        }
+                    },
                     shapes = ListItemDefaults.segmentedShapes(index = index, count = ancLevels.size),
                     colors = segmentedColors,
                     enabled = enabled,
@@ -1466,7 +1534,10 @@ private fun NoiseAdjustmentSheet(
             val windShapes = ListItemDefaults.segmentedShapes(index = 0, count = 1)
             SegmentedListItem(
                 checked = sw.enabled,
-                onCheckedChange = { onToggle(sw.id, it) },
+                onCheckedChange = { checked ->
+                    haptics.toggle(checked)
+                    onToggle(sw.id, checked)
+                },
                 shapes = windShapes.copy(selectedShape = windShapes.shape),
                 colors = sheetSwitchSegmentedColors(),
                 enabled = enabled,
@@ -1518,23 +1589,35 @@ private fun NoiseAdjustmentSheet(
             val cycleOptions = listOf(
                 Triple("ANC", hasAnc) {
                     if (hasAnc && totalActive > 2) {
+                        haptics.toggle(false)
                         onNoiseCycle(10)
                     } else if (!hasAnc) {
+                        haptics.toggle(true)
                         onNoiseCycle(11)
+                    } else {
+                        haptics.reject()
                     }
                 },
                 Triple("Ambient", hasTransparency) {
                     if (hasTransparency && totalActive > 2) {
+                        haptics.toggle(false)
                         onNoiseCycle(3)
                     } else if (!hasTransparency) {
+                        haptics.toggle(true)
                         onNoiseCycle(11)
+                    } else {
+                        haptics.reject()
                     }
                 },
                 Triple("Off", hasOff) {
                     if (hasOff && totalActive > 2) {
+                        haptics.toggle(false)
                         onNoiseCycle(9)
                     } else if (!hasOff) {
+                        haptics.toggle(true)
                         onNoiseCycle(11)
+                    } else {
+                        haptics.reject()
                     }
                 },
             )
@@ -1599,6 +1682,7 @@ private fun SheetTitle(
     subtitle: String? = null,
     onBack: (() -> Unit)? = null,
 ) {
+    val haptics = rememberUnlinkHaptics()
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1607,7 +1691,10 @@ private fun SheetTitle(
     ) {
         onBack?.let {
             IconButton(
-                onClick = it,
+                onClick = {
+                    haptics.click()
+                    it()
+                },
                 shapes = IconButtonDefaults.shapes(),
                 modifier = Modifier.size(48.dp),
             ) {
@@ -1648,6 +1735,7 @@ private fun EqualizerSheet(
 ) {
     val custom = snapshot.customEqProfile
     val segmentedColors = sheetSegmentedColors()
+    val haptics = rememberUnlinkHaptics()
 
     SheetColumn {
         SheetTitle(title = "Equalizer", subtitle = "Sound profiles & 6-band custom")
@@ -1700,7 +1788,12 @@ private fun EqualizerSheet(
             profileOptions.forEachIndexed { index, option ->
                 SegmentedListItem(
                     selected = option.selected,
-                    onClick = { onSelect(option.id) },
+                    onClick = {
+                        if (!option.selected) {
+                            haptics.select()
+                            onSelect(option.id)
+                        }
+                    },
                     shapes = ListItemDefaults.segmentedShapes(index = index, count = profileOptions.size),
                     colors = segmentedColors,
                     enabled = option.enabled,
@@ -1759,6 +1852,9 @@ private fun EqualizerSheet(
                     FilterChip(
                         selected = selected,
                         onClick = {
+                            if (!selected) {
+                                haptics.select()
+                            }
                             selectedPresetId = suggestion.id
                             bands = EqSuggestions.apply(custom, suggestion).dbValues
                         },
@@ -1802,6 +1898,7 @@ private fun EqualizerSheet(
             Spacer(Modifier.height(8.dp))
             Button(
                 onClick = {
+                    haptics.confirm()
                     onApplyCustomEq(custom.copy(dbValues = bands, selected = true))
                 },
                 shapes = ButtonDefaults.shapes(),
@@ -1825,12 +1922,15 @@ private fun EqBandSlider(
     enabled: Boolean,
     onValueChange: (Int) -> Unit,
 ) {
+    val haptics = rememberUnlinkHaptics()
     val sliderState = rememberSliderState(
         value = value.toFloat(),
         steps = (maxValue - minValue - 1).coerceAtLeast(0),
         trackRange = minValue.toFloat()..maxValue.toFloat(),
     )
+    var lastHapticValue by remember(frequencyHz) { mutableIntStateOf(value) }
     LaunchedEffect(value) {
+        lastHapticValue = value
         if (sliderState.value.roundToInt() != value) {
             sliderState.value = value.toFloat()
         }
@@ -1857,7 +1957,12 @@ private fun EqBandSlider(
         state = sliderState,
         onValueChange = { newValue ->
             sliderState.value = newValue
-            onValueChange(newValue.roundToInt())
+            val rounded = newValue.roundToInt()
+            if (rounded != lastHapticValue) {
+                lastHapticValue = rounded
+                haptics.sliderStep(rounded, minValue, maxValue)
+            }
+            onValueChange(rounded)
         },
         enabled = enabled,
     )
@@ -1876,6 +1981,7 @@ private fun DynamicBassSheet(
             !snapshot.readFailed(HeadsetProtocol.MULTI_BASS_ENGINE_COMMAND)
     }.orEmpty()
     val switchColors = sheetSwitchSegmentedColors()
+    val haptics = rememberUnlinkHaptics()
 
     SheetColumn {
         SheetTitle(title = "Dynamic bass", subtitle = "Low-frequency enhancement")
@@ -1900,7 +2006,10 @@ private fun DynamicBassSheet(
             val switchShapes = ListItemDefaults.segmentedShapes(index = 0, count = 1)
             SegmentedListItem(
                 checked = sw.enabled,
-                onCheckedChange = { onToggle(sw.id, it) },
+                onCheckedChange = { checked ->
+                    haptics.toggle(checked)
+                    onToggle(sw.id, checked)
+                },
                 shapes = switchShapes.copy(selectedShape = switchShapes.shape),
                 colors = switchColors,
                 enabled = enabled,
@@ -1948,12 +2057,15 @@ private fun BassBandSlider(
     enabled: Boolean,
     onChange: (HeadsetCapabilityDiscovery.BassEngineValue) -> Unit,
 ) {
+    val haptics = rememberUnlinkHaptics()
     val sliderState = rememberSliderState(
         value = band.currentValue.toFloat(),
         steps = (band.maxValue - band.minValue - 1).coerceAtLeast(0),
         trackRange = band.minValue.toFloat()..band.maxValue.toFloat(),
     )
+    var lastHapticValue by remember(band.type) { mutableIntStateOf(band.currentValue) }
     LaunchedEffect(band.type, band.currentValue) {
+        lastHapticValue = band.currentValue
         if (sliderState.value.roundToInt() != band.currentValue) {
             sliderState.value = band.currentValue.toFloat()
         }
@@ -1991,10 +2103,18 @@ private fun BassBandSlider(
         }
         Slider(
             state = sliderState,
-            onValueChange = { sliderState.value = it },
+            onValueChange = { newValue ->
+                sliderState.value = newValue
+                val rounded = newValue.roundToInt()
+                if (rounded != lastHapticValue) {
+                    lastHapticValue = rounded
+                    haptics.sliderStep(rounded, band.minValue, band.maxValue)
+                }
+            },
             onValueChangeFinished = {
                 val targetValue = sliderState.value.roundToInt()
                 if (enabled && targetValue != band.currentValue) {
+                    haptics.gestureEnd()
                     onChange(band.copy(currentValue = targetValue))
                 }
             },
@@ -2053,6 +2173,7 @@ private fun ButtonControlsSheet(
                 .distinctBy { it.action }
                 .sortedBy { it.action }
             val segmentedColors = sheetSegmentedColors()
+            val haptics = rememberUnlinkHaptics()
 
             SheetColumn {
                 SheetTitle(title = "Button controls", subtitle = "Multifunction button")
@@ -2068,7 +2189,10 @@ private fun ButtonControlsSheet(
                 ) {
                     mappings.forEachIndexed { index, mapping ->
                         SegmentedListItem(
-                            onClick = { onSelectMapping(mapping) },
+                            onClick = {
+                                haptics.click()
+                                onSelectMapping(mapping)
+                            },
                             shapes = ListItemDefaults.segmentedShapes(index = index, count = mappings.size),
                             colors = segmentedColors,
                             enabled = enabled,
@@ -2105,6 +2229,7 @@ private fun ButtonFunctionPicker(
     onSelect: (ButtonChoice) -> Unit,
 ) {
     val segmentedColors = sheetSegmentedColors()
+    val haptics = rememberUnlinkHaptics()
 
     SheetColumn {
         SheetTitle(
@@ -2121,7 +2246,14 @@ private fun ButtonFunctionPicker(
                 val itemEnabled = enabled && choice.supportedByCurrentController
                 SegmentedListItem(
                     selected = selected,
-                    onClick = { onSelect(choice) },
+                    onClick = {
+                        if (choice.function != mapping.function) {
+                            haptics.confirm()
+                        } else {
+                            haptics.click()
+                        }
+                        onSelect(choice)
+                    },
                     shapes = ListItemDefaults.segmentedShapes(index = index, count = buttonChoices.size),
                     colors = segmentedColors,
                     enabled = itemEnabled,
