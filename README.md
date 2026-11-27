@@ -2,9 +2,8 @@
 
 A local, account-free companion for **realme Buds Wireless 5 ANC (RMA2412)** on Pixel 10 / Android 17 (API 37).
 
-<p align="center">
-  <img src="docs/screenshots/demo.webp" alt="Realme Unlink Material 3 Expressive Demo" width="360" />
-</p>
+<!-- markdownlint-disable-next-line MD034 -->
+https://github.com/user-attachments/assets/43785865-576d-472c-b6cd-7261e10d0341
 
 - No cloud dependency, telemetry, account, ads, or `INTERNET` permission.
 - Quick Settings tile entrypoint by default; opt-in app drawer icon via the top-bar menu.
